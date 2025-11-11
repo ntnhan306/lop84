@@ -140,7 +140,7 @@ function renderEditPage() {
                 <header class="flex justify-between items-center mb-8 pb-4 border-b-2 border-teal-500">
                     <div>
                         <h1 class="text-4xl font-bold text-teal-600 dark:text-teal-400">Chỉnh sửa thông tin Lớp 8/4</h1>
-                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Thêm, sửa, xóa dữ liệu (v1.24)</p>
+                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Thêm, sửa, xóa dữ liệu (v1.25)</p>
                     </div>
                     <div class="flex items-center space-x-4">
                         <a href="../view/" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">
@@ -212,7 +212,7 @@ function renderEditPage() {
                 </main>
                 <footer class="text-center mt-12 text-gray-500 dark:text-gray-400">
                     <p>&copy; ${new Date().getFullYear()} Lớp 8/4. Chế độ chỉnh sửa.</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v1.24</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v1.1</p>
                 </footer>
             </div>
         </div>
@@ -255,7 +255,8 @@ async function handleSyncToGitHub() {
                 <strong>Đồng bộ thất bại:</strong> Không tìm thấy dữ liệu để đồng bộ trong trình duyệt.
             </div>
         `;
-        updateSyncState(true, 'Đồng bộ thất bại, vui lòng thử lại.');
+        button.disabled = false;
+        button.textContent = 'Thử lại Đồng bộ';
         return;
     }
 
@@ -271,8 +272,9 @@ async function handleSyncToGitHub() {
                 <p class="mt-2">Vui lòng kiểm tra lại hướng dẫn cài đặt và thử lại. Nếu vẫn gặp lỗi, hãy kiểm tra log của Cloudflare Worker và GitHub Action để biết thêm chi tiết.</p>
             </div>
         `;
-        // Kích hoạt lại nút nếu có lỗi để người dùng thử lại
-        updateSyncState(true, 'Đồng bộ thất bại, vui lòng thử lại.');
+        // Kích hoạt lại nút để người dùng có thể thử lại, mà không ghi đè thông báo lỗi chi tiết.
+        button.disabled = false;
+        button.textContent = 'Thử lại Đồng bộ';
     }
 }
 
