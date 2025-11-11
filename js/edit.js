@@ -1,13 +1,15 @@
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage } from './data.js';
 import { getPasswordHash, setPasswordHash, hashPassword } from './auth.js';
 import { renderGallery, renderClassList, renderSchedule } from './ui.js';
+import { updateFileOnGitHub } from './github.js';
 
-let appData = null; // Data is now loaded asynchronously
+let appData = null;
 
 const authContainer = document.getElementById('auth-container');
 const editContainer = document.getElementById('edit-container');
 const modalContainer = document.getElementById('modal-container');
 
+// ... (renderAuthForm function remains the same) ...
 function renderAuthForm(type) {
     const isSettingPassword = type === 'set';
     const title = isSettingPassword ? 'Thiết lập Mật khẩu' : 'Đăng nhập';
@@ -86,6 +88,7 @@ function renderAuthForm(type) {
     });
 }
 
+
 function renderEditPage() {
     if (!appData) return;
 
@@ -97,24 +100,27 @@ function renderEditPage() {
                         <h1 class="text-4xl font-bold text-teal-600 dark:text-teal-400">Chỉnh sửa thông tin Lớp 8/4</h1>
                         <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Thêm, sửa, xóa dữ liệu</p>
                     </div>
-                    <a href="../view/" class="px-4 py-2 bg-teal-600 text-white font-semibold rounded-lg shadow-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-75 transition-colors">
-                        Xem trang
-                    </a>
+                    <div class="flex items-center space-x-4">
+                        <a href="../view/" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">
+                            Xem trang
+                        </a>
+                    </div>
                 </header>
                 <main id="edit-main" class="space-y-12">
-                    <section class="bg-yellow-50 dark:bg-gray-800 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                        <h2 class="text-xl font-bold text-yellow-800 dark:text-yellow-300">Hướng dẫn Cập nhật Dữ liệu</h2>
-                        <div class="mt-2 text-yellow-700 dark:text-yellow-200 space-y-2">
-                            <p><strong>Quy trình mới:</strong> Dữ liệu chung của lớp giờ được lưu trong một file trên GitHub để mọi người cùng xem.</p>
+                     <section class="bg-blue-50 dark:bg-gray-800 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                        <h2 class="text-xl font-bold text-blue-800 dark:text-blue-300">Đồng bộ hóa Dữ liệu với GitHub</h2>
+                        <div class="mt-2 text-blue-700 dark:text-blue-200 space-y-2">
+                            <p><strong>Quy trình mới:</strong> Dữ liệu sẽ được lưu trực tiếp lên GitHub để mọi người cùng xem.</p>
                             <ol class="list-decimal list-inside space-y-1">
-                                <li>Thực hiện các thay đổi của bạn trên trang này. Dữ liệu sẽ được lưu tạm thời trên trình duyệt của bạn.</li>
-                                <li>Khi đã hoàn tất, nhấn nút <strong>"Tải Xuống File Dữ liệu"</strong>. Thao tác này sẽ tải về một file có tên <code>data.json</code>.</li>
-                                <li>Để công khai các thay đổi, bạn cần <strong>tải file <code>data.json</code> này lên thư mục <code>/data/</code></strong> trong repository GitHub của lớp và commit thay đổi.</li>
+                                <li><strong>Cài đặt một lần:</strong> Mở file <code>js/github.js</code> trong mã nguồn và điền thông tin <code>REPO_OWNER</code>, <code>REPO_NAME</code>, và <code>GITHUB_TOKEN</code>.</li>
+                                <li>Thực hiện các thay đổi của bạn trên trang này. Dữ liệu sẽ được lưu tạm thời.</li>
+                                <li>Khi hoàn tất, nhấn nút <strong>"Lưu và Đồng bộ lên GitHub"</strong> để công khai các thay đổi.</li>
                             </ol>
                             <div class="mt-4">
-                                <button id="export-data-btn" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400">
-                                    Tải Xuống File Dữ liệu (data.json)
+                                <button id="sync-github-btn" class="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-blue-300">
+                                    Lưu và Đồng bộ lên GitHub
                                 </button>
+                                <p id="sync-status" class="text-sm mt-2"></p>
                             </div>
                         </div>
                     </section>
@@ -146,13 +152,15 @@ function renderEditPage() {
     document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
     document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
     document.getElementById('schedule-container').innerHTML = renderSchedule(appData.schedule, true);
-    document.getElementById('export-data-btn').addEventListener('click', handleExportData);
+    document.getElementById('sync-github-btn').addEventListener('click', handleSyncToGitHub);
 }
 
 async function showEditPage() {
     authContainer.innerHTML = `<div class="flex items-center justify-center h-screen">Đang tải dữ liệu mới nhất...</div>`;
     
+    // Fetch latest data from GitHub to ensure we are editing the most recent version
     appData = await fetchAppData();
+    // Save it to local storage for the editing session
     saveAppDataToStorage(appData);
 
     authContainer.classList.add('hidden');
@@ -160,25 +168,41 @@ async function showEditPage() {
     renderEditPage();
 }
 
-function handleExportData() {
-    const dataToExport = getAppDataFromStorage();
-    if (!dataToExport) {
-        alert("Không có dữ liệu để tải xuống.");
+async function handleSyncToGitHub() {
+    const button = document.getElementById('sync-github-btn');
+    const statusEl = document.getElementById('sync-status');
+    
+    button.disabled = true;
+    button.textContent = 'Đang đồng bộ...';
+    statusEl.textContent = 'Đang tiến hành lưu dữ liệu lên GitHub...';
+    statusEl.className = 'text-sm mt-2 text-blue-600 dark:text-blue-400';
+
+    const dataToSync = getAppDataFromStorage();
+
+    if (!dataToSync) {
+        statusEl.textContent = 'Lỗi: Không có dữ liệu để đồng bộ.';
+        statusEl.className = 'text-sm mt-2 text-red-600 dark:text-red-400';
+        button.disabled = false;
+        button.textContent = 'Lưu và Đồng bộ lên GitHub';
         return;
     }
-    const dataStr = JSON.stringify(dataToExport, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'data.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    alert('File data.json đã được tạo. Vui lòng tải file này lên thư mục /data/ trên GitHub.');
+
+    const result = await updateFileOnGitHub(dataToSync);
+
+    if (result.success) {
+        statusEl.textContent = result.message;
+        statusEl.className = 'text-sm mt-2 text-green-600 dark:text-green-400';
+    } else {
+        statusEl.textContent = `Lỗi: ${result.message}`;
+        statusEl.className = 'text-sm mt-2 text-red-600 dark:text-red-400';
+        alert(`Đồng bộ thất bại: ${result.message}`);
+    }
+
+    button.disabled = false;
+    button.textContent = 'Lưu và Đồng bộ lên GitHub';
 }
 
+// ... (openModal, closeModal, showStudentForm, showMediaForm functions remain the same) ...
 function openModal(title, contentHTML) {
     modalContainer.innerHTML = `
         <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
@@ -248,6 +272,7 @@ function showMediaForm(mediaId = null) {
     `;
     openModal(title, formHTML);
 }
+
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {

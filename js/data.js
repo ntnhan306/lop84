@@ -1,4 +1,4 @@
-const APP_DATA_KEY = 'lop84_app_data_local_edit'; // Changed key to avoid conflicts
+const APP_DATA_KEY = 'lop84_app_data_local_edit';
 const DATA_FILE_PATH = '../data/data.json';
 
 // Initial structure, used as a fallback
