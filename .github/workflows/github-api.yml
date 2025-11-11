@@ -19,8 +19,7 @@ jobs:
 
       - name: Update data.json on GitHub
         env:
-          # GITHUB_TOKEN is automatically provided by GitHub Actions
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOKEN: ${{ secrets.TOKEN }}
           REPO_FULL_NAME: ${{ github.repository }}
           CONTENT: ${{ github.event.inputs.file_content }}
         run: |
