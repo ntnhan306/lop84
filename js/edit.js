@@ -212,6 +212,7 @@ function renderEditPage() {
                 </main>
                 <footer class="text-center mt-12 text-gray-500 dark:text-gray-400">
                     <p>&copy; ${new Date().getFullYear()} Lớp 8/4. Chế độ chỉnh sửa.</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v1.24</p>
                 </footer>
             </div>
         </div>
