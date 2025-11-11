@@ -140,7 +140,7 @@ function renderEditPage() {
                 <header class="flex justify-between items-center mb-8 pb-4 border-b-2 border-teal-500">
                     <div>
                         <h1 class="text-4xl font-bold text-teal-600 dark:text-teal-400">Chỉnh sửa thông tin Lớp 8/4</h1>
-                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Thêm, sửa, xóa dữ liệu (v1.25)</p>
+                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Thêm, sửa, xóa dữ liệu (v1.26)</p>
                     </div>
                     <div class="flex items-center space-x-4">
                         <a href="../view/" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">
@@ -161,30 +161,38 @@ function renderEditPage() {
                             </div>
                         </div>
                          <div class="mt-6 border-t border-blue-200 dark:border-gray-700 pt-4">
-                            <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-300">Hướng dẫn Cài đặt (Chỉ làm 1 lần)</h3>
-                            <p class="text-sm text-blue-600 dark:text-blue-300 mt-1">Lỗi bạn đang gặp phải rất có thể do cấu hình sai. Vui lòng kiểm tra kỹ các bước sau:</p>
-                            <ol class="list-decimal list-inside space-y-2 mt-2 text-sm text-blue-700 dark:text-blue-200">
+                            <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-300">Hướng dẫn Cài đặt & Gỡ lỗi</h3>
+                            <div class="mt-4 p-4 border rounded-md bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-600">
+                                <h4 class="font-bold text-red-800 dark:text-red-200">Gỡ lỗi: Lỗi "403 Forbidden"</h4>
+                                <p class="text-sm text-red-700 dark:text-red-300 mt-1">
+                                    Nếu bạn nhận được lỗi <strong>"Phản hồi từ GitHub: 403 Forbidden"</strong>, nguyên nhân chắc chắn là do Personal Access Token (PAT) mà bạn lưu trên Cloudflare Worker <strong>BỊ THIẾU QUYỀN (SCOPE) <code>workflow</code></strong>.
+                                </p>
+                                <p class="text-sm text-red-700 dark:text-red-300 mt-2">
+                                    <strong>Cách sửa:</strong> Tạo một PAT <strong>mới</strong> trên GitHub, đảm bảo bạn đã <strong>tích vào ô <code>workflow</code></strong>, sau đó cập nhật lại giá trị của secret <code>GITHUB_TOKEN</code> trên Cloudflare.
+                                </p>
+                            </div>
+                            <p class="text-sm text-blue-600 dark:text-blue-300 mt-4">Để hệ thống hoạt động, vui lòng kiểm tra kỹ 3 bước cài đặt sau:</p>
+                            <ol class="list-decimal list-inside space-y-3 mt-2 text-sm text-blue-700 dark:text-blue-200">
                                 <li>
-                                    <b>Kiểm tra Cloudflare Worker:</b>
-                                    <ul class="list-disc list-inside pl-4 mt-1">
-                                        <li>Đảm bảo các biến <code>GITHUB_OWNER</code>, <code>GITHUB_REPO</code>, <code>ALLOWED_ORIGIN</code> trong code Worker đã chính xác.</li>
+                                    <b>Bước 1: Cấu hình Cloudflare Worker</b>
+                                    <ul class="list-disc list-inside pl-4 mt-1 space-y-1">
+                                        <li>Trong code của Worker, đảm bảo các biến <code>GITHUB_OWNER</code>, <code>GITHUB_REPO</code>, và <code>ALLOWED_ORIGIN</code> đã chính xác.</li>
                                         <li>Dán URL của Worker vào biến <code>SERVERLESS_ENDPOINT</code> trong file <code>js/github.js</code>.</li>
                                     </ul>
                                 </li>
                                 <li>
-                                    <b class="text-yellow-500">Thêm Secret vào Worker (NGUYÊN NHÂN GÂY LỖI):</b>
-                                    <ul class="list-disc list-inside pl-4 mt-1">
-                                        <li>Truy cập trang quản trị Cloudflare, vào Worker của bạn > <strong>Settings</strong> > <strong>Variables</strong>.</li>
-                                        <li>Trong mục <strong>Environment Variable Secrets</strong>, nhấn <strong>Add variable</strong>.</li>
-                                        <li>Đặt <strong>Variable name</strong> là <code>GITHUB_TOKEN</code>.</li>
-                                        <li>Đặt <strong>Value</strong> là Personal Access Token (PAT) của GitHub có quyền (scope) <code>workflow</code>.</li>
+                                    <b>Bước 2: Thêm Secret vào Worker (QUAN TRỌNG NHẤT)</b>
+                                    <ul class="list-disc list-inside pl-4 mt-1 space-y-1">
+                                        <li>Truy cập Cloudflare > Worker > <strong>Settings</strong> > <strong>Variables</strong>.</li>
+                                        <li>Trong mục <strong>Environment Variable Secrets</strong>, tạo secret tên <code>GITHUB_TOKEN</code>.</li>
+                                        <li>Giá trị của nó <strong>PHẢI LÀ</strong> một Personal Access Token (PAT) của GitHub có tích chọn quyền (scope) <code>workflow</code>.</li>
                                     </ul>
                                 </li>
                                 <li>
-                                    <b>Kiểm tra Secret trên GitHub Repo:</b>
-                                    <ul class="list-disc list-inside pl-4 mt-1">
+                                    <b>Bước 3: Thêm Secret vào GitHub Repo</b>
+                                    <ul class="list-disc list-inside pl-4 mt-1 space-y-1">
                                         <li>Vào repo GitHub > <strong>Settings</strong> > <strong>Secrets and variables</strong> > <strong>Actions</strong>.</li>
-                                        <li>Trong mục <strong>Repository secrets</strong>, đảm bảo bạn có một secret tên là <code>TOKEN</code>.</li>
+                                        <li>Trong <strong>Repository secrets</strong>, đảm bảo bạn có secret tên <code>TOKEN</code>.</li>
                                         <li>Giá trị của nó phải là một PAT khác có quyền (scope) <code>contents: write</code> để Action có thể ghi file.</li>
                                     </ul>
                                 </li>
