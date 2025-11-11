@@ -151,12 +151,33 @@ function renderEditPage() {
                             </div>
                         </div>
                          <div class="mt-6 border-t border-blue-200 dark:border-gray-700 pt-4">
-                             <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-300">Hướng dẫn Cài đặt Một lần:</h3>
-                             <ol class="list-decimal list-inside space-y-1 mt-2 text-sm">
-                                <li><b>Tạo Cloudflare Worker:</b> Sao chép mã từ file <code>cloudflare/worker.js</code>, triển khai lên Cloudflare và điền các biến <code>GITHUB_OWNER</code>, <code>GITHUB_REPO</code>, <code>ALLOWED_ORIGIN</code>.</li>
-                                <li><b>Thêm Secret vào Worker:</b> Trong cài đặt Worker trên Cloudflare, thêm secret tên <code>GITHUB_TOKEN</code> (giá trị là PAT có quyền <code>workflow</code>).</li>
-                                <li><b>Cập nhật Endpoint:</b> Dán URL của Worker vào biến <code>SERVERLESS_ENDPOINT</code> trong file <code>js/github.js</code>.</li>
-                                <li><b>Cập nhật Secret Repo:</b> Đảm bảo bạn có một "Repository secret" trên GitHub tên là <code>TOKEN</code> (giá trị là PAT có quyền <code>contents: write</code>) để Action có thể ghi file.</li>
+                            <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-300">Hướng dẫn Cài đặt (Chỉ làm 1 lần)</h3>
+                            <p class="text-sm text-blue-600 dark:text-blue-300 mt-1">Lỗi bạn đang gặp phải rất có thể do cấu hình sai. Vui lòng kiểm tra kỹ các bước sau:</p>
+                            <ol class="list-decimal list-inside space-y-2 mt-2 text-sm text-blue-700 dark:text-blue-200">
+                                <li>
+                                    <b>Kiểm tra Cloudflare Worker:</b>
+                                    <ul class="list-disc list-inside pl-4 mt-1">
+                                        <li>Đảm bảo các biến <code>GITHUB_OWNER</code>, <code>GITHUB_REPO</code>, <code>ALLOWED_ORIGIN</code> trong code Worker đã chính xác.</li>
+                                        <li>Dán URL của Worker vào biến <code>SERVERLESS_ENDPOINT</code> trong file <code>js/github.js</code>.</li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <b class="text-yellow-500">Thêm Secret vào Worker (NGUYÊN NHÂN GÂY LỖI):</b>
+                                    <ul class="list-disc list-inside pl-4 mt-1">
+                                        <li>Truy cập trang quản trị Cloudflare, vào Worker của bạn > <strong>Settings</strong> > <strong>Variables</strong>.</li>
+                                        <li>Trong mục <strong>Environment Variable Secrets</strong>, nhấn <strong>Add variable</strong>.</li>
+                                        <li>Đặt <strong>Variable name</strong> là <code>GITHUB_TOKEN</code>.</li>
+                                        <li>Đặt <strong>Value</strong> là Personal Access Token (PAT) của GitHub có quyền (scope) <code>workflow</code>.</li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <b>Kiểm tra Secret trên GitHub Repo:</b>
+                                    <ul class="list-disc list-inside pl-4 mt-1">
+                                        <li>Vào repo GitHub > <strong>Settings</strong> > <strong>Secrets and variables</strong> > <strong>Actions</strong>.</li>
+                                        <li>Trong mục <strong>Repository secrets</strong>, đảm bảo bạn có một secret tên là <code>TOKEN</code>.</li>
+                                        <li>Giá trị của nó phải là một PAT khác có quyền (scope) <code>contents: write</code> để Action có thể ghi file.</li>
+                                    </ul>
+                                </li>
                             </ol>
                         </div>
                     </section>
