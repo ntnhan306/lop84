@@ -9,7 +9,6 @@ const authContainer = document.getElementById('auth-container');
 const editContainer = document.getElementById('edit-container');
 const modalContainer = document.getElementById('modal-container');
 
-// ... (renderAuthForm function remains the same) ...
 function renderAuthForm(type) {
     const isSettingPassword = type === 'set';
     const title = isSettingPassword ? 'Thiết lập Mật khẩu' : 'Đăng nhập';
@@ -295,7 +294,6 @@ async function handleSyncToGitHub() {
     }
 }
 
-// ... (openModal, closeModal, showStudentForm, showMediaForm functions remain the same) ...
 function openModal(title, contentHTML) {
     modalContainer.innerHTML = `
         <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
@@ -310,6 +308,7 @@ function openModal(title, contentHTML) {
             </div>
         </div>`;
 }
+
 function closeModal() {
     modalContainer.innerHTML = '';
 }
