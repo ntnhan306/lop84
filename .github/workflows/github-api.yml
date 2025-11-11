@@ -10,7 +10,6 @@ on:
 jobs:
   update_json_file:
     runs-on: ubuntu-latest
-    # BỔ SUNG QUAN TRỌNG: Cấp quyền cho Action để ghi file vào repo.
     permissions:
       contents: write
     steps:
@@ -47,8 +46,21 @@ jobs:
             --arg sha "$SHA" \
             '{message: $msg, content: $content, sha: $sha}')
 
-          # 4. Make the PUT request to update the file and check for failure
+          # 4. Make the PUT request and capture the response for detailed error logging
           echo "Updating file..."
-          curl --fail -s -X PUT -H "Authorization: token $TOKEN" \
-               -H "Accept: application/vnd.github.v3+json" \
-               -d "$JSON_PAYLOAD" "$API_URL"
+          HTTP_RESPONSE=$(curl -s -o response.json -w "%{http_code}" \
+            -X PUT \
+            -H "Authorization: token $TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d "$JSON_PAYLOAD" \
+            "$API_URL")
+
+          # 5. Check if the request was successful
+          if [[ "$HTTP_RESPONSE" -lt 200 || "$HTTP_RESPONSE" -ge 300 ]]; then
+            echo "::error::Failed to update file. GitHub API responded with status $HTTP_RESPONSE."
+            echo "::error::Response body:"
+            cat response.json
+            exit 1
+          else
+            echo "File updated successfully. Status: $HTTP_RESPONSE"
+          fi
