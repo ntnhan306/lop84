@@ -1,0 +1,58 @@
+name: GitHub API Read/Write
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'read hoặc write'
+        required: true
+        default: 'read'
+      filepath:
+        description: 'Đường dẫn file (ví dụ: data/test.txt)'
+        required: true
+        default: 'data/test.txt'
+      message:
+        description: 'Commit message khi ghi'
+        required: false
+      content:
+        description: 'Nội dung file khi ghi'
+        required: false
+
+jobs:
+  github_api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cài curl & jq
+        run: sudo apt-get update && sudo apt-get install -y curl jq
+
+      - name: Read/Write file
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+          ACTION: ${{ github.event.inputs.action }}
+          FILEPATH: ${{ github.event.inputs.filepath }}
+          MESSAGE: ${{ github.event.inputs.message }}
+          CONTENT: ${{ github.event.inputs.content }}
+        run: |
+          if [ "$ACTION" = "read" ]; then
+            curl -s -H "Authorization: token $TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/$OWNER/$REPO/contents/$FILEPATH \
+              | jq -r '.content' | base64 --decode
+          elif [ "$ACTION" = "write" ]; then
+            SHA=$(curl -s -H "Authorization: token $TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/$OWNER/$REPO/contents/$FILEPATH | jq -r '.sha')
+            ENCODED=$(echo -n "$CONTENT" | base64 -w 0)
+            curl -s -X PUT \
+              -H "Authorization: token $TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -d "{\"message\":\"${MESSAGE:-Update via Action}\",\"content\":\"$ENCODED\",\"sha\":\"$SHA\"}" \
+              https://api.github.com/repos/$OWNER/$REPO/contents/$FILEPATH | jq
+          else
+            echo "Chỉ chấp nhận action = read hoặc write"
+          fi
