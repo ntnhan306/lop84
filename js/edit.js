@@ -1,8 +1,8 @@
-import { getAppData, saveAppData } from './data.js';
+import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage } from './data.js';
 import { getPasswordHash, setPasswordHash, hashPassword } from './auth.js';
 import { renderGallery, renderClassList, renderSchedule } from './ui.js';
 
-let appData = getAppData();
+let appData = null; // Data is now loaded asynchronously
 
 const authContainer = document.getElementById('auth-container');
 const editContainer = document.getElementById('edit-container');
@@ -47,6 +47,10 @@ function renderAuthForm(type) {
 
     document.getElementById('auth-form').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const button = e.target.querySelector('button');
+        button.disabled = true;
+        button.textContent = 'Đang xử lý...';
+        
         const password = e.target.password.value;
         const errorEl = document.getElementById('auth-error');
         errorEl.textContent = '';
@@ -55,28 +59,36 @@ function renderAuthForm(type) {
             const confirmPassword = e.target['confirm-password'].value;
             if (password !== confirmPassword) {
                 errorEl.textContent = 'Mật khẩu không khớp.';
+                button.disabled = false;
+                button.textContent = 'Lưu Mật khẩu';
                 return;
             }
             if (password.length < 6) {
                 errorEl.textContent = 'Mật khẩu phải có ít nhất 6 ký tự.';
+                button.disabled = false;
+                button.textContent = 'Lưu Mật khẩu';
                 return;
             }
             const newHash = await hashPassword(password);
             setPasswordHash(newHash);
-            showEditPage();
+            await showEditPage();
         } else {
             const storedHash = getPasswordHash();
             const inputHash = await hashPassword(password);
             if (inputHash === storedHash) {
-                showEditPage();
+                await showEditPage();
             } else {
                 errorEl.textContent = 'Mật khẩu không đúng. Vui lòng thử lại.';
+                button.disabled = false;
+                button.textContent = 'Đăng nhập';
             }
         }
     });
 }
 
 function renderEditPage() {
+    if (!appData) return;
+
     editContainer.innerHTML = `
         <div class="min-h-screen bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 lg:p-8">
             <div class="max-w-7xl mx-auto">
@@ -90,6 +102,22 @@ function renderEditPage() {
                     </a>
                 </header>
                 <main id="edit-main" class="space-y-12">
+                    <section class="bg-yellow-50 dark:bg-gray-800 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                        <h2 class="text-xl font-bold text-yellow-800 dark:text-yellow-300">Hướng dẫn Cập nhật Dữ liệu</h2>
+                        <div class="mt-2 text-yellow-700 dark:text-yellow-200 space-y-2">
+                            <p><strong>Quy trình mới:</strong> Dữ liệu chung của lớp giờ được lưu trong một file trên GitHub để mọi người cùng xem.</p>
+                            <ol class="list-decimal list-inside space-y-1">
+                                <li>Thực hiện các thay đổi của bạn trên trang này. Dữ liệu sẽ được lưu tạm thời trên trình duyệt của bạn.</li>
+                                <li>Khi đã hoàn tất, nhấn nút <strong>"Tải Xuống File Dữ liệu"</strong>. Thao tác này sẽ tải về một file có tên <code>data.json</code>.</li>
+                                <li>Để công khai các thay đổi, bạn cần <strong>tải file <code>data.json</code> này lên thư mục <code>/data/</code></strong> trong repository GitHub của lớp và commit thay đổi.</li>
+                            </ol>
+                            <div class="mt-4">
+                                <button id="export-data-btn" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400">
+                                    Tải Xuống File Dữ liệu (data.json)
+                                </button>
+                            </div>
+                        </div>
+                    </section>
                     <section class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6">
                         <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6 border-l-4 border-teal-500 pl-4">Quản lý Thư viện Ảnh/Video</h2>
                         <div class="mb-4 text-right">
@@ -110,7 +138,7 @@ function renderEditPage() {
                     </section>
                 </main>
                 <footer class="text-center mt-12 text-gray-500 dark:text-gray-400">
-                    <p>&copy; 2024 Lớp 8/4. Chế độ chỉnh sửa.</p>
+                    <p>&copy; ${new Date().getFullYear()} Lớp 8/4. Chế độ chỉnh sửa.</p>
                 </footer>
             </div>
         </div>
@@ -118,12 +146,37 @@ function renderEditPage() {
     document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
     document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
     document.getElementById('schedule-container').innerHTML = renderSchedule(appData.schedule, true);
+    document.getElementById('export-data-btn').addEventListener('click', handleExportData);
 }
 
-function showEditPage() {
+async function showEditPage() {
+    authContainer.innerHTML = `<div class="flex items-center justify-center h-screen">Đang tải dữ liệu mới nhất...</div>`;
+    
+    appData = await fetchAppData();
+    saveAppDataToStorage(appData);
+
     authContainer.classList.add('hidden');
     editContainer.classList.remove('hidden');
     renderEditPage();
+}
+
+function handleExportData() {
+    const dataToExport = getAppDataFromStorage();
+    if (!dataToExport) {
+        alert("Không có dữ liệu để tải xuống.");
+        return;
+    }
+    const dataStr = JSON.stringify(dataToExport, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'data.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('File data.json đã được tạo. Vui lòng tải file này lên thư mục /data/ trên GitHub.');
 }
 
 function openModal(title, contentHTML) {
@@ -151,10 +204,10 @@ function showStudentForm(studentId = null) {
 
     const formHTML = `
         <form id="student-form" data-id="${studentId || ''}" class="space-y-4">
-            <input type="text" name="name" value="${student.name}" placeholder="Họ và Tên" required class="block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
-            <input type="text" name="studentId" value="${student.studentId}" placeholder="Mã học sinh" required class="block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
-            <input type="date" name="dob" value="${student.dob}" placeholder="Ngày sinh" required class="block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
-            <input type="tel" name="phone" value="${student.phone}" placeholder="Số điện thoại" required class="block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+            <input type="text" name="name" value="${student.name || ''}" placeholder="Họ và Tên" required class="block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+            <input type="text" name="studentId" value="${student.studentId || ''}" placeholder="Mã học sinh" required class="block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+            <input type="date" name="dob" value="${student.dob || ''}" placeholder="Ngày sinh" required class="block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+            <input type="tel" name="phone" value="${student.phone || ''}" placeholder="Số điện thoại" required class="block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
             <textarea name="notes" placeholder="Ghi chú" class="block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600">${student.notes || ''}</textarea>
             <div class="flex justify-end space-x-2">
                 <button type="button" id="form-cancel-btn" class="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500">Hủy</button>
@@ -181,7 +234,7 @@ function showMediaForm(mediaId = null) {
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">URL</label>
-                <input type="text" name="url" value="${item.url}" required class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="https://..."/>
+                <input type="text" name="url" value="${item.url || ''}" required class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="https://..."/>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Chú thích</label>
@@ -210,7 +263,7 @@ editContainer.addEventListener('input', (e) => {
     if (target.matches('#schedule-container input')) {
         const { day, session, period } = target.dataset;
         appData.schedule[day][session][parseInt(period)].subject = target.value;
-        saveAppData(appData);
+        saveAppDataToStorage(appData);
     }
 });
 
@@ -230,7 +283,7 @@ editContainer.addEventListener('click', (e) => {
         case 'delete-student':
             if (confirm('Bạn có chắc muốn xóa học sinh này?')) {
                 appData.students = appData.students.filter(s => s.id !== id);
-                saveAppData(appData);
+                saveAppDataToStorage(appData);
                 document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
             }
             break;
@@ -243,7 +296,7 @@ editContainer.addEventListener('click', (e) => {
         case 'delete-media':
             if (confirm('Bạn có chắc muốn xóa mục này?')) {
                 appData.media = appData.media.filter(m => m.id !== id);
-                saveAppData(appData);
+                saveAppDataToStorage(appData);
                 document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
             }
             break;
@@ -275,7 +328,7 @@ modalContainer.addEventListener('submit', (e) => {
         } else {
             appData.students.push(updatedStudent);
         }
-        saveAppData(appData);
+        saveAppDataToStorage(appData);
         document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
     } else if (form.id === 'media-form') {
         const updatedMedia = {
@@ -289,7 +342,7 @@ modalContainer.addEventListener('submit', (e) => {
         } else {
             appData.media.push(updatedMedia);
         }
-        saveAppData(appData);
+        saveAppDataToStorage(appData);
         document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
     }
     
