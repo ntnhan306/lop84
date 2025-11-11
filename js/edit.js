@@ -9,6 +9,7 @@ const authContainer = document.getElementById('auth-container');
 const editContainer = document.getElementById('edit-container');
 const modalContainer = document.getElementById('modal-container');
 
+// ... (renderAuthForm function remains the same) ...
 function renderAuthForm(type) {
     const isSettingPassword = type === 'set';
     const title = isSettingPassword ? 'Thiết lập Mật khẩu' : 'Đăng nhập';
@@ -139,7 +140,7 @@ function renderEditPage() {
                 <header class="flex justify-between items-center mb-8 pb-4 border-b-2 border-teal-500">
                     <div>
                         <h1 class="text-4xl font-bold text-teal-600 dark:text-teal-400">Chỉnh sửa thông tin Lớp 8/4</h1>
-                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Thêm, sửa, xóa dữ liệu (v1.28)</p>
+                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Thêm, sửa, xóa dữ liệu (v1.26)</p>
                     </div>
                     <div class="flex items-center space-x-4">
                         <a href="../view/" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">
@@ -159,52 +160,43 @@ function renderEditPage() {
                                 <div id="sync-status" class="mt-2"></div>
                             </div>
                         </div>
-                        <div class="mt-6 border-t border-blue-200 dark:border-gray-700 pt-4">
+                         <div class="mt-6 border-t border-blue-200 dark:border-gray-700 pt-4">
                             <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-300">Hướng dẫn Cài đặt & Gỡ lỗi</h3>
-                            <div class="mt-4 p-4 border-2 rounded-lg bg-red-50 dark:bg-red-900/20 border-red-500 dark:border-red-600 shadow-md">
-                                <h4 class="text-lg font-extrabold text-red-800 dark:text-red-200 flex items-center">
-                                    <svg class="w-6 h-6 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                    Gỡ lỗi quan trọng: Lỗi "403 Forbidden"
-                                </h4>
-                                <p class="text-base text-red-700 dark:text-red-300 mt-2">
-                                    Lỗi này xảy ra khi Cloudflare Worker cố gắng kích hoạt GitHub Action nhưng <strong>bị GitHub từ chối</strong>. Lý do duy nhất là <strong>Personal Access Token (PAT)</strong> bạn lưu trên Cloudflare <strong>KHÔNG CÓ ĐÚNG QUYỀN</strong>.
+                            <div class="mt-4 p-4 border rounded-md bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-600">
+                                <h4 class="font-bold text-red-800 dark:text-red-200">Gỡ lỗi: Lỗi "403 Forbidden"</h4>
+                                <p class="text-sm text-red-700 dark:text-red-300 mt-1">
+                                    Nếu bạn nhận được lỗi <strong>"Phản hồi từ GitHub: 403 Forbidden"</strong>, nguyên nhân chắc chắn là do Personal Access Token (PAT) mà bạn lưu trên Cloudflare Worker <strong>BỊ THIẾU QUYỀN (SCOPE) <code>workflow</code></strong>.
                                 </p>
-                                <p class="text-base font-bold text-red-700 dark:text-red-300 mt-3">
-                                    ➡️ Vui lòng làm lại chính xác theo các bước sau để sửa lỗi dứt điểm:
+                                <p class="text-sm text-red-700 dark:text-red-300 mt-2">
+                                    <strong>Cách sửa:</strong> Tạo một PAT <strong>mới</strong> trên GitHub, đảm bảo bạn đã <strong>tích vào ô <code>workflow</code></strong>, sau đó cập nhật lại giá trị của secret <code>GITHUB_TOKEN</code> trên Cloudflare.
                                 </p>
-                                <ol class="list-decimal list-inside space-y-3 mt-3 text-base text-red-800 dark:text-red-200">
-                                    <li>
-                                        <strong>Tạo Token Mới (Không thể sai):</strong> Nhấn vào link này để đến thẳng trang tạo token của GitHub với quyền đã được chọn sẵn:<br>
-                                        <a href="https://github.com/settings/tokens/new?scopes=workflow&description=Cloudflare%20Worker%20Trigger" target="_blank" rel="noopener noreferrer" class="font-semibold text-blue-600 dark:text-blue-400 hover:underline">
-                                            Tạo Personal Access Token với quyền `workflow`
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <strong>Cấu hình Token:</strong>
-                                        <ul class="list-disc list-inside pl-5 mt-1">
-                                            <li>✅ Quyền (Scope): Ô <strong>`workflow`</strong> đã được tự động tích. <strong>ĐỪNG BỎ TÍCH NÓ.</strong></li>
-                                            <li>🗓️ Expiration: Chọn ngày hết hạn (ví dụ: 90 ngày).</li>
-                                            <li>📝 Note: Tên token đã được điền sẵn là "Cloudflare Worker Trigger".</li>
-                                            <li>👇 Nhấn nút <strong>"Generate token"</strong> ở cuối trang.</li>
-                                        </ul>
-                                    </li>
-                                    <li>
-                                        <strong>Sao chép Token:</strong> Sao chép <strong>toàn bộ</strong> chuỗi token vừa được tạo (nó bắt đầu bằng `ghp_...`).
-                                    </li>
-                                    <li>
-                                        <strong>Cập nhật Cloudflare:</strong>
-                                         <ul class="list-disc list-inside pl-5 mt-1">
-                                            <li>Vào Cloudflare > Worker > <strong>Settings</strong> > <strong>Variables</strong>.</li>
-                                            <li>Tìm secret <code>GITHUB_TOKEN</code>, nhấn <strong>Edit</strong>.</li>
-                                            <li>Xóa giá trị cũ và dán token mới bạn vừa sao chép vào.</li>
-                                            <li>Nhấn <strong>Save</strong>.</li>
-                                        </ul>
-                                    </li>
-                                    <li>
-                                        <strong>Thử lại:</strong> Quay lại trang này và nhấn nút "Thử lại Đồng bộ".
-                                    </li>
-                                </ol>
                             </div>
+                            <p class="text-sm text-blue-600 dark:text-blue-300 mt-4">Để hệ thống hoạt động, vui lòng kiểm tra kỹ 3 bước cài đặt sau:</p>
+                            <ol class="list-decimal list-inside space-y-3 mt-2 text-sm text-blue-700 dark:text-blue-200">
+                                <li>
+                                    <b>Bước 1: Cấu hình Cloudflare Worker</b>
+                                    <ul class="list-disc list-inside pl-4 mt-1 space-y-1">
+                                        <li>Trong code của Worker, đảm bảo các biến <code>GITHUB_OWNER</code>, <code>GITHUB_REPO</code>, và <code>ALLOWED_ORIGIN</code> đã chính xác.</li>
+                                        <li>Dán URL của Worker vào biến <code>SERVERLESS_ENDPOINT</code> trong file <code>js/github.js</code>.</li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <b>Bước 2: Thêm Secret vào Worker (QUAN TRỌNG NHẤT)</b>
+                                    <ul class="list-disc list-inside pl-4 mt-1 space-y-1">
+                                        <li>Truy cập Cloudflare > Worker > <strong>Settings</strong> > <strong>Variables</strong>.</li>
+                                        <li>Trong mục <strong>Environment Variable Secrets</strong>, tạo secret tên <code>GITHUB_TOKEN</code>.</li>
+                                        <li>Giá trị của nó <strong>PHẢI LÀ</strong> một Personal Access Token (PAT) của GitHub có tích chọn quyền (scope) <code>workflow</code>.</li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <b>Bước 3: Thêm Secret vào GitHub Repo</b>
+                                    <ul class="list-disc list-inside pl-4 mt-1 space-y-1">
+                                        <li>Vào repo GitHub > <strong>Settings</strong> > <strong>Secrets and variables</strong> > <strong>Actions</strong>.</li>
+                                        <li>Trong <strong>Repository secrets</strong>, đảm bảo bạn có secret tên <code>TOKEN</code>.</li>
+                                        <li>Giá trị của nó phải là một PAT khác có quyền (scope) <code>contents: write</code> để Action có thể ghi file.</li>
+                                    </ul>
+                                </li>
+                            </ol>
                         </div>
                     </section>
                     <section class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6">
@@ -228,7 +220,7 @@ function renderEditPage() {
                 </main>
                 <footer class="text-center mt-12 text-gray-500 dark:text-gray-400">
                     <p>&copy; ${new Date().getFullYear()} Lớp 8/4. Chế độ chỉnh sửa.</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v1.28</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v1.1</p>
                 </footer>
             </div>
         </div>
@@ -294,6 +286,7 @@ async function handleSyncToGitHub() {
     }
 }
 
+// ... (openModal, closeModal, showStudentForm, showMediaForm functions remain the same) ...
 function openModal(title, contentHTML) {
     modalContainer.innerHTML = `
         <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
@@ -308,7 +301,6 @@ function openModal(title, contentHTML) {
             </div>
         </div>`;
 }
-
 function closeModal() {
     modalContainer.innerHTML = '';
 }
