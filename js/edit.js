@@ -101,13 +101,23 @@ function updateSyncState(isDirty, message = '') {
     if (isDirty) {
         button.disabled = false;
         button.textContent = 'Lưu và Đồng bộ thay đổi';
-        statusEl.textContent = message || 'Bạn có thay đổi chưa được đồng bộ.';
-        statusEl.className = 'text-sm mt-2 text-yellow-600 dark:text-yellow-400';
+        if (message) {
+            statusEl.innerHTML = `<p class="text-sm mt-2 text-yellow-600 dark:text-yellow-400">${message}</p>`;
+        } else {
+            statusEl.innerHTML = `<p class="text-sm mt-2 text-yellow-600 dark:text-yellow-400">Bạn có thay đổi chưa được đồng bộ.</p>`;
+        }
     } else {
         button.disabled = true;
         button.textContent = 'Đã đồng bộ';
-        statusEl.textContent = message || 'Dữ liệu đã được đồng bộ và cập nhật.';
-        statusEl.className = 'text-sm mt-2 text-green-600 dark:text-green-400';
+         if (message) {
+            statusEl.innerHTML = `
+                <div class="mt-2 text-sm text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/20 border border-green-400 rounded-md p-3">
+                    ${message}
+                </div>
+            `;
+        } else {
+            statusEl.innerHTML = `<p class="text-sm mt-2 text-green-600 dark:text-green-400">Dữ liệu đã được đồng bộ và cập nhật.</p>`;
+        }
     }
 }
 
@@ -147,7 +157,7 @@ function renderEditPage() {
                                 <button id="sync-github-btn" class="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-all">
                                     Lưu và Đồng bộ lên GitHub
                                 </button>
-                                <p id="sync-status" class="text-sm mt-2"></p>
+                                <div id="sync-status" class="mt-2"></div>
                             </div>
                         </div>
                          <div class="mt-6 border-t border-blue-200 dark:border-gray-700 pt-4">
@@ -212,7 +222,7 @@ function renderEditPage() {
     document.getElementById('sync-github-btn').addEventListener('click', handleSyncToGitHub);
     
     // Khởi tạo trạng thái ban đầu của nút đồng bộ
-    updateSyncState(false);
+    updateSyncState(false, 'Dữ liệu đã được đồng bộ và cập nhật.');
 }
 
 async function showEditPage() {
@@ -234,16 +244,17 @@ async function handleSyncToGitHub() {
     
     button.disabled = true;
     button.textContent = 'Đang đồng bộ...';
-    statusEl.textContent = 'Đang gửi yêu cầu đồng bộ...';
-    statusEl.className = 'text-sm mt-2 text-blue-600 dark:text-blue-400';
+    statusEl.innerHTML = `<p class="text-sm mt-2 text-blue-600 dark:text-blue-400">Đang gửi yêu cầu đồng bộ...</p>`;
 
     const dataToSync = getAppDataFromStorage();
 
     if (!dataToSync) {
-        statusEl.textContent = 'Lỗi: Không có dữ liệu để đồng bộ.';
-        statusEl.className = 'text-sm mt-2 text-red-600 dark:text-red-400';
-        button.disabled = false;
-        button.textContent = 'Lưu và Đồng bộ lên GitHub';
+        statusEl.innerHTML = `
+            <div class="mt-2 text-sm text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/20 border border-red-400 rounded-md p-3">
+                <strong>Đồng bộ thất bại:</strong> Không tìm thấy dữ liệu để đồng bộ trong trình duyệt.
+            </div>
+        `;
+        updateSyncState(true, 'Đồng bộ thất bại, vui lòng thử lại.');
         return;
     }
 
@@ -252,9 +263,13 @@ async function handleSyncToGitHub() {
     if (result.success) {
         updateSyncState(false, result.message);
     } else {
-        statusEl.textContent = `Lỗi: ${result.message}`;
-        statusEl.className = 'text-sm mt-2 text-red-600 dark:text-red-400';
-        alert(`Đồng bộ thất bại: ${result.message}`);
+        statusEl.innerHTML = `
+             <div class="mt-2 text-sm text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/20 border border-red-400 rounded-md p-3">
+                <strong>Đồng bộ thất bại:</strong>
+                <p class="mt-1"><code>${result.message}</code></p>
+                <p class="mt-2">Vui lòng kiểm tra lại hướng dẫn cài đặt và thử lại. Nếu vẫn gặp lỗi, hãy kiểm tra log của Cloudflare Worker và GitHub Action để biết thêm chi tiết.</p>
+            </div>
+        `;
         // Kích hoạt lại nút nếu có lỗi để người dùng thử lại
         updateSyncState(true, 'Đồng bộ thất bại, vui lòng thử lại.');
     }
