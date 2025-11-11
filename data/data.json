@@ -2,8 +2,8 @@
   "students": [],
   "schedule": {
     "Thứ Hai": {
-      "morning": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }],
-      "afternoon": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }]
+      "morning": [{ "subject": "Chào cờ" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }],
+      "afternoon": [{ "subject": "" }, { "subject": "" }, { "subject": "Tin học" }, { "subject": "Thể dục" }, { "subject": "" }]
     },
     "Thứ Ba": {
       "morning": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }],
