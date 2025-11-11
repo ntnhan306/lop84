@@ -88,6 +88,38 @@ function renderAuthForm(type) {
     });
 }
 
+/**
+ * Cập nhật trạng thái của nút đồng bộ và thông báo.
+ * @param {boolean} isDirty - True nếu có thay đổi chưa được đồng bộ.
+ * @param {string} [message] - Thông báo tùy chọn để hiển thị.
+ */
+function updateSyncState(isDirty, message = '') {
+    const button = document.getElementById('sync-github-btn');
+    const statusEl = document.getElementById('sync-status');
+    if (!button || !statusEl) return;
+
+    if (isDirty) {
+        button.disabled = false;
+        button.textContent = 'Lưu và Đồng bộ thay đổi';
+        statusEl.textContent = message || 'Bạn có thay đổi chưa được đồng bộ.';
+        statusEl.className = 'text-sm mt-2 text-yellow-600 dark:text-yellow-400';
+    } else {
+        button.disabled = true;
+        button.textContent = 'Đã đồng bộ';
+        statusEl.textContent = message || 'Dữ liệu đã được đồng bộ và cập nhật.';
+        statusEl.className = 'text-sm mt-2 text-green-600 dark:text-green-400';
+    }
+}
+
+
+/**
+ * Hàm chung để cập nhật dữ liệu, lưu vào localStorage và đánh dấu là có thay đổi.
+ */
+function updateAndSaveChanges() {
+    saveAppDataToStorage(appData);
+    updateSyncState(true);
+}
+
 
 function renderEditPage() {
     if (!appData) return;
@@ -108,40 +140,24 @@ function renderEditPage() {
                 </header>
                 <main id="edit-main" class="space-y-12">
                      <section class="bg-blue-50 dark:bg-gray-800 border-l-4 border-blue-400 p-4 rounded-r-lg">
-                        <h2 class="text-xl font-bold text-blue-800 dark:text-blue-300">Đồng bộ hóa Dữ liệu với GitHub</h2>
+                        <h2 class="text-xl font-bold text-blue-800 dark:text-blue-300">Đồng bộ hóa Dữ liệu</h2>
                         <div class="mt-2 text-blue-700 dark:text-blue-200 space-y-2">
-                            <p><strong>Quy trình mới:</strong> Dữ liệu sẽ được lưu an toàn lên GitHub thông qua một Cloudflare Worker và GitHub Action.</p>
-                            <p><strong>Hướng dẫn cài đặt một lần:</strong></p>
-                             <ol class="list-decimal list-inside space-y-2">
-                                <li>
-                                    <strong>Cấu hình và Triển khai Cloudflare Worker:</strong>
-                                    <ul class="list-disc list-inside pl-5 mt-1">
-                                        <li>Sao chép mã nguồn dành cho Worker và dán vào trong trang quản trị Cloudflare.</li>
-                                        <li>Trong mã nguồn đó, hãy chỉnh sửa các hằng số ở đầu file (<code>GITHUB_OWNER</code>, <code>GITHUB_REPO</code>, <code>ALLOWED_ORIGIN</code>) cho đúng với thông tin repo và trang web của bạn.</li>
-                                        <li>Triển khai (Deploy) Worker.</li>
-                                    </ul>
-                                </li>
-                                <li>
-                                    <strong>Thêm Secret Token vào Worker:</strong>
-                                    <ul class="list-disc list-inside pl-5 mt-1">
-                                        <li>Trong trang quản trị Worker, vào mục "Settings" > "Variables".</li>
-                                        <li>Thêm một "Environment Variable Secret" với tên là <code>GITHUB_TOKEN</code> và dán Personal Access Token (PAT) của bạn vào.</li>
-                                    </ul>
-                                </li>
-                                <li>
-                                    <strong>Kết nối Trang web với Worker:</strong>
-                                    <ul class="list-disc list-inside pl-5 mt-1">
-                                        <li>Mở file <code>js/github.js</code> trong mã nguồn dự án.</li>
-                                        <li>Dán URL của Worker bạn vừa triển khai vào biến <code>SERVERLESS_ENDPOINT</code>.</li>
-                                    </ul>
-                                </li>
-                            </ol>
+                            <p>Mọi thay đổi của bạn sẽ được lưu tạm thời trên trình duyệt. Nhấn nút bên dưới để đồng bộ dữ liệu lên GitHub và cập nhật trang công khai.</p>
                             <div class="mt-4">
-                                <button id="sync-github-btn" class="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-blue-300">
+                                <button id="sync-github-btn" class="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-all">
                                     Lưu và Đồng bộ lên GitHub
                                 </button>
                                 <p id="sync-status" class="text-sm mt-2"></p>
                             </div>
+                        </div>
+                         <div class="mt-6 border-t border-blue-200 dark:border-gray-700 pt-4">
+                             <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-300">Hướng dẫn Cài đặt Một lần:</h3>
+                             <ol class="list-decimal list-inside space-y-1 mt-2 text-sm">
+                                <li><b>Tạo Cloudflare Worker:</b> Sao chép mã từ file <code>cloudflare/worker.js</code>, triển khai lên Cloudflare và điền các biến <code>GITHUB_OWNER</code>, <code>GITHUB_REPO</code>, <code>ALLOWED_ORIGIN</code>.</li>
+                                <li><b>Thêm Secret vào Worker:</b> Trong cài đặt Worker trên Cloudflare, thêm secret tên <code>GITHUB_TOKEN</code> (giá trị là PAT có quyền <code>workflow</code>).</li>
+                                <li><b>Cập nhật Endpoint:</b> Dán URL của Worker vào biến <code>SERVERLESS_ENDPOINT</code> trong file <code>js/github.js</code>.</li>
+                                <li><b>Cập nhật Secret Repo:</b> Đảm bảo bạn có một "Repository secret" trên GitHub tên là <code>TOKEN</code> (giá trị là PAT có quyền <code>contents: write</code>) để Action có thể ghi file.</li>
+                            </ol>
                         </div>
                     </section>
                     <section class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6">
@@ -173,6 +189,9 @@ function renderEditPage() {
     document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
     document.getElementById('schedule-container').innerHTML = renderSchedule(appData.schedule, true);
     document.getElementById('sync-github-btn').addEventListener('click', handleSyncToGitHub);
+    
+    // Khởi tạo trạng thái ban đầu của nút đồng bộ
+    updateSyncState(false);
 }
 
 async function showEditPage() {
@@ -210,16 +229,14 @@ async function handleSyncToGitHub() {
     const result = await updateFileOnGitHub(dataToSync);
 
     if (result.success) {
-        statusEl.textContent = result.message;
-        statusEl.className = 'text-sm mt-2 text-green-600 dark:text-green-400';
+        updateSyncState(false, result.message);
     } else {
         statusEl.textContent = `Lỗi: ${result.message}`;
         statusEl.className = 'text-sm mt-2 text-red-600 dark:text-red-400';
         alert(`Đồng bộ thất bại: ${result.message}`);
+        // Kích hoạt lại nút nếu có lỗi để người dùng thử lại
+        updateSyncState(true, 'Đồng bộ thất bại, vui lòng thử lại.');
     }
-
-    button.disabled = false;
-    button.textContent = 'Lưu và Đồng bộ lên GitHub';
 }
 
 // ... (openModal, closeModal, showStudentForm, showMediaForm functions remain the same) ...
@@ -308,7 +325,7 @@ editContainer.addEventListener('input', (e) => {
     if (target.matches('#schedule-container input')) {
         const { day, session, period } = target.dataset;
         appData.schedule[day][session][parseInt(period)].subject = target.value;
-        saveAppDataToStorage(appData);
+        updateAndSaveChanges();
     }
 });
 
@@ -328,7 +345,7 @@ editContainer.addEventListener('click', (e) => {
         case 'delete-student':
             if (confirm('Bạn có chắc muốn xóa học sinh này?')) {
                 appData.students = appData.students.filter(s => s.id !== id);
-                saveAppDataToStorage(appData);
+                updateAndSaveChanges();
                 document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
             }
             break;
@@ -341,7 +358,7 @@ editContainer.addEventListener('click', (e) => {
         case 'delete-media':
             if (confirm('Bạn có chắc muốn xóa mục này?')) {
                 appData.media = appData.media.filter(m => m.id !== id);
-                saveAppDataToStorage(appData);
+                updateAndSaveChanges();
                 document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
             }
             break;
@@ -373,7 +390,7 @@ modalContainer.addEventListener('submit', (e) => {
         } else {
             appData.students.push(updatedStudent);
         }
-        saveAppDataToStorage(appData);
+        updateAndSaveChanges();
         document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
     } else if (form.id === 'media-form') {
         const updatedMedia = {
@@ -387,7 +404,7 @@ modalContainer.addEventListener('submit', (e) => {
         } else {
             appData.media.push(updatedMedia);
         }
-        saveAppDataToStorage(appData);
+        updateAndSaveChanges();
         document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
     }
     
