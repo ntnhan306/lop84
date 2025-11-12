@@ -12,8 +12,8 @@ let editContainer;
 let modalContainer;
 
 function renderAuthForm(storedHash) {
-    const title = 'Đăng nhập Trang Chỉnh sửa';
-    const description = `Vui lòng nhập mật khẩu để tiếp tục. <br>Nếu đây là lần truy cập đầu tiên, mật khẩu mặc định là <strong>000000</strong>.`;
+    const title = 'Đăng nhập<>Trang Chỉnh sửa';
+    const description = `Vui lòng nhập mật khẩu để tiếp tục. <br>Nếu là lần đầu mật khẩu có thể là <strong>000000</strong>.`;
 
     authContainer.innerHTML = `
         <div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
