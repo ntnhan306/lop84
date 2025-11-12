@@ -88,11 +88,6 @@ function renderAuthForm(type) {
     });
 }
 
-/**
- * Cập nhật trạng thái của nút đồng bộ và thông báo.
- * @param {boolean} isDirty - True nếu có thay đổi chưa được đồng bộ.
- * @param {string} [message] - Thông báo tùy chọn để hiển thị.
- */
 function updateSyncState(isDirty, message = '') {
     const button = document.getElementById('sync-github-btn');
     const statusEl = document.getElementById('sync-status');
@@ -122,9 +117,6 @@ function updateSyncState(isDirty, message = '') {
 }
 
 
-/**
- * Hàm chung để cập nhật dữ liệu, lưu vào localStorage và đánh dấu là có thay đổi.
- */
 function updateAndSaveChanges() {
     saveAppDataToStorage(appData);
     updateSyncState(true);
@@ -140,7 +132,7 @@ function renderEditPage() {
                 <header class="flex justify-between items-center mb-8 pb-4 border-b-2 border-teal-500">
                     <div>
                         <h1 class="text-4xl font-bold text-teal-600 dark:text-teal-400">Chỉnh sửa thông tin Lớp 8/4</h1>
-                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Thêm, sửa, xóa dữ liệu (v1.28)</p>
+                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Thêm, sửa, xóa dữ liệu (v1.30)</p>
                     </div>
                     <div class="flex items-center space-x-4">
                         <a href="../view/" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">
@@ -152,59 +144,13 @@ function renderEditPage() {
                      <section class="bg-blue-50 dark:bg-gray-800 border-l-4 border-blue-400 p-4 rounded-r-lg">
                         <h2 class="text-xl font-bold text-blue-800 dark:text-blue-300">Đồng bộ hóa Dữ liệu</h2>
                         <div class="mt-2 text-blue-700 dark:text-blue-200 space-y-2">
-                            <p>Mọi thay đổi của bạn sẽ được lưu tạm thời trên trình duyệt. Nhấn nút bên dưới để đồng bộ dữ liệu lên GitHub và cập nhật trang công khai.</p>
+                            <p>Mọi thay đổi sẽ được lưu vào trình duyệt. Khi bạn sẵn sàng, hãy nhấn nút bên dưới để đồng bộ dữ liệu lên máy chủ.</p>
+                            <p class="text-xs">Quá trình này sử dụng một hàm trung gian (serverless function) để cập nhật file một cách an toàn.</p>
                             <div class="mt-4">
                                 <button id="sync-github-btn" class="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-all">
-                                    Lưu và Đồng bộ lên GitHub
+                                    Lưu và Đồng bộ thay đổi
                                 </button>
                                 <div id="sync-status" class="mt-2"></div>
-                            </div>
-                        </div>
-                        <div class="mt-6 border-t border-blue-200 dark:border-gray-700 pt-4">
-                            <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-300">Hướng dẫn Cài đặt & Gỡ lỗi</h3>
-                            <div class="mt-4 p-4 border-2 rounded-lg bg-red-50 dark:bg-red-900/20 border-red-500 dark:border-red-600 shadow-md">
-                                <h4 class="text-lg font-extrabold text-red-800 dark:text-red-200 flex items-center">
-                                    <svg class="w-6 h-6 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                    Gỡ lỗi quan trọng: Lỗi "403 Forbidden"
-                                </h4>
-                                <p class="text-base text-red-700 dark:text-red-300 mt-2">
-                                    Lỗi này xảy ra khi Cloudflare Worker cố gắng kích hoạt GitHub Action nhưng <strong>bị GitHub từ chối</strong>. Lý do duy nhất là <strong>Personal Access Token (PAT)</strong> bạn lưu trên Cloudflare <strong>KHÔNG CÓ ĐÚNG QUYỀN</strong>.
-                                </p>
-                                <p class="text-base font-bold text-red-700 dark:text-red-300 mt-3">
-                                    ➡️ Vui lòng làm lại chính xác theo các bước sau để sửa lỗi dứt điểm:
-                                </p>
-                                <ol class="list-decimal list-inside space-y-3 mt-3 text-base text-red-800 dark:text-red-200">
-                                    <li>
-                                        <strong>Tạo Token Mới (Không thể sai):</strong> Nhấn vào link này để đến thẳng trang tạo token của GitHub với quyền đã được chọn sẵn:<br>
-                                        <a href="https://github.com/settings/tokens/new?scopes=workflow&description=Cloudflare%20Worker%20Trigger" target="_blank" rel="noopener noreferrer" class="font-semibold text-blue-600 dark:text-blue-400 hover:underline">
-                                            Tạo Personal Access Token với quyền `workflow`
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <strong>Cấu hình Token:</strong>
-                                        <ul class="list-disc list-inside pl-5 mt-1">
-                                            <li>✅ Quyền (Scope): Ô <strong>`workflow`</strong> đã được tự động tích. <strong>ĐỪNG BỎ TÍCH NÓ.</strong></li>
-                                            <li>🗓️ Expiration: Chọn ngày hết hạn (ví dụ: 90 ngày).</li>
-                                            <li>📝 Note: Tên token đã được điền sẵn là "Cloudflare Worker Trigger".</li>
-                                            <li>👇 Nhấn nút <strong>"Generate token"</strong> ở cuối trang.</li>
-                                        </ul>
-                                    </li>
-                                    <li>
-                                        <strong>Sao chép Token:</strong> Sao chép <strong>toàn bộ</strong> chuỗi token vừa được tạo (nó bắt đầu bằng `ghp_...`).
-                                    </li>
-                                    <li>
-                                        <strong>Cập nhật Cloudflare:</strong>
-                                         <ul class="list-disc list-inside pl-5 mt-1">
-                                            <li>Vào Cloudflare > Worker > <strong>Settings</strong> > <strong>Variables</strong>.</li>
-                                            <li>Tìm secret <code>GITHUB_TOKEN</code>, nhấn <strong>Edit</strong>.</li>
-                                            <li>Xóa giá trị cũ và dán token mới bạn vừa sao chép vào.</li>
-                                            <li>Nhấn <strong>Save</strong>.</li>
-                                        </ul>
-                                    </li>
-                                    <li>
-                                        <strong>Thử lại:</strong> Quay lại trang này và nhấn nút "Thử lại Đồng bộ".
-                                    </li>
-                                </ol>
                             </div>
                         </div>
                     </section>
@@ -229,7 +175,7 @@ function renderEditPage() {
                 </main>
                 <footer class="text-center mt-12 text-gray-500 dark:text-gray-400">
                     <p>&copy; ${new Date().getFullYear()} Lớp 8/4. Chế độ chỉnh sửa.</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v1.28</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v1.30</p>
                 </footer>
             </div>
         </div>
@@ -237,18 +183,18 @@ function renderEditPage() {
     document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
     document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
     document.getElementById('schedule-container').innerHTML = renderSchedule(appData.schedule, true);
-    document.getElementById('sync-github-btn').addEventListener('click', handleSyncToGitHub);
     
-    // Khởi tạo trạng thái ban đầu của nút đồng bộ
+    // Add event listeners for sync button
+    document.getElementById('sync-github-btn').addEventListener('click', handleSyncToServerless);
+    
+    // Initialize sync button state
     updateSyncState(false, 'Dữ liệu đã được đồng bộ và cập nhật.');
 }
 
 async function showEditPage() {
     authContainer.innerHTML = `<div class="flex items-center justify-center h-screen">Đang tải dữ liệu mới nhất...</div>`;
     
-    // Fetch latest data from GitHub to ensure we are editing the most recent version
     appData = await fetchAppData();
-    // Save it to local storage for the editing session
     saveAppDataToStorage(appData);
 
     authContainer.classList.add('hidden');
@@ -256,27 +202,22 @@ async function showEditPage() {
     renderEditPage();
 }
 
-async function handleSyncToGitHub() {
+async function handleSyncToServerless() {
     const button = document.getElementById('sync-github-btn');
     const statusEl = document.getElementById('sync-status');
     
     button.disabled = true;
     button.textContent = 'Đang đồng bộ...';
-    statusEl.innerHTML = `<p class="text-sm mt-2 text-blue-600 dark:text-blue-400">Đang gửi yêu cầu đồng bộ...</p>`;
+    statusEl.innerHTML = `<p class="text-sm mt-2 text-blue-600 dark:text-blue-400">Đang gửi yêu cầu đến máy chủ...</p>`;
 
     const dataToSync = getAppDataFromStorage();
-
     if (!dataToSync) {
-        statusEl.innerHTML = `
-            <div class="mt-2 text-sm text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/20 border border-red-400 rounded-md p-3">
-                <strong>Đồng bộ thất bại:</strong> Không tìm thấy dữ liệu để đồng bộ trong trình duyệt.
-            </div>
-        `;
-        button.disabled = false;
+        statusEl.innerHTML = `<p class="text-sm mt-2 text-red-600 dark:text-red-400">Lỗi: Không tìm thấy dữ liệu để đồng bộ.</p>`;
+        button.disabled = false; 
         button.textContent = 'Thử lại Đồng bộ';
         return;
     }
-
+    
     const result = await updateFileOnGitHub(dataToSync);
 
     if (result.success) {
@@ -286,10 +227,8 @@ async function handleSyncToGitHub() {
              <div class="mt-2 text-sm text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/20 border border-red-400 rounded-md p-3">
                 <strong>Đồng bộ thất bại:</strong>
                 <p class="mt-1"><code>${result.message}</code></p>
-                <p class="mt-2">Vui lòng kiểm tra lại hướng dẫn cài đặt và thử lại. Nếu vẫn gặp lỗi, hãy kiểm tra log của Cloudflare Worker và GitHub Action để biết thêm chi tiết.</p>
             </div>
         `;
-        // Kích hoạt lại nút để người dùng có thể thử lại, mà không ghi đè thông báo lỗi chi tiết.
         button.disabled = false;
         button.textContent = 'Thử lại Đồng bộ';
     }
@@ -367,14 +306,11 @@ function showMediaForm(mediaId = null) {
 }
 
 
-// Toàn bộ logic chính được gói trong DOMContentLoaded để đảm bảo DOM đã sẵn sàng
 document.addEventListener('DOMContentLoaded', () => {
-    // Gán giá trị cho các biến DOM sau khi trang đã tải
     authContainer = document.getElementById('auth-container');
     editContainer = document.getElementById('edit-container');
     modalContainer = document.getElementById('modal-container');
 
-    // Gắn các event listener
     editContainer.addEventListener('input', (e) => {
         const target = e.target;
         if (target.matches('#schedule-container input')) {
@@ -466,7 +402,6 @@ document.addEventListener('DOMContentLoaded', () => {
         closeModal();
     });
 
-    // Bắt đầu logic của ứng dụng
     if (getPasswordHash()) {
         renderAuthForm('login');
     } else {
