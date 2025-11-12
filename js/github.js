@@ -47,6 +47,12 @@ export async function updateFileOnGitHub(data) {
 
     } catch (error) {
         console.error('Lỗi khi kích hoạt GitHub Action:', error);
-        return { success: false, message: `Đã xảy ra lỗi khi gửi yêu cầu cập nhật: ${error.message}` };
+        
+        let detailedMessage = `Đã xảy ra lỗi khi gửi yêu cầu cập nhật: ${error.message}.`;
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+            detailedMessage += ' Lỗi này thường xảy ra do sự cố mạng hoặc do chính sách CORS của máy chủ không cho phép yêu cầu từ trang này. Vui lòng kiểm tra kết nối mạng của bạn. Nếu sự cố vẫn tiếp diễn, có thể cần phải cấu hình lại máy chủ trung gian (serverless function) để cho phép các yêu cầu từ tên miền của bạn.';
+        }
+        
+        return { success: false, message: detailedMessage };
     }
 }
