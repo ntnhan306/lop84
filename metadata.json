@@ -1,5 +1,5 @@
 {
   "name": "Lớp 8/4 - Trang thông tin",
-  "description": "Một trang web để lưu trữ và hiển thị thông tin cho Lớp 8/4, bao gồm thư viện ảnh/video, danh sách lớp, và thời khóa biểu. Dữ liệu có thể được chỉnh sửa và được bảo vệ bằng mật khẩu.",
+  "description": "Phiên bản 2.0: Một trang web hiện đại để lưu trữ và hiển thị thông tin cho Lớp 8/4. Nâng cấp toàn diện giao diện và trải nghiệm người dùng, hỗ trợ quản lý thư viện đa phương tiện, danh sách lớp, và thời khóa biểu. Dữ liệu được bảo vệ bằng mật khẩu và đồng bộ hóa qua Cloudflare.",
   "requestFramePermissions": []
 }
