@@ -1,5 +1,5 @@
 import { fetchAppData } from './data.js';
-import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
+import { renderGallery, renderClassList, renderSchedule, icons, openLightbox } from './ui.js';
 
 // --- State Management ---
 let appData = null;
@@ -125,6 +125,19 @@ async function init() {
             setActiveView(button.dataset.view);
         });
     });
+
+    // Event delegation for opening the lightbox
+    document.addEventListener('click', (e) => {
+        const lightboxTrigger = e.target.closest('[data-lightbox-item="true"]');
+        if (lightboxTrigger) {
+            const src = lightboxTrigger.dataset.src;
+            if (src) {
+                e.preventDefault();
+                openLightbox(src);
+            }
+        }
+    });
+
 
     // Show initial loading message
     Object.values(containers).forEach(container => {

@@ -212,17 +212,17 @@ async function handleSyncToKV() {
     }
 }
 
-function openModal(title, contentHTML, size = 'max-w-lg') {
+function openModal(title, contentHTML, size = 'max-w-2xl') {
     modalContainer.innerHTML = `
         <div id="modal-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 transition-opacity duration-300 ease-in-out" style="opacity: 0;">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${size} max-h-full overflow-y-auto transform scale-95 transition-all duration-300 ease-in-out" style="opacity: 0;">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${size} max-h-[90vh] flex flex-col transform scale-95 transition-all duration-300 ease-in-out" style="opacity: 0;">
                 <div class="flex justify-between items-center p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
                     <h3 class="text-xl font-semibold text-gray-900 dark:text-white">${title}</h3>
                     <button id="modal-close-btn" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
                     </button>
                 </div>
-                <div class="p-6">${contentHTML}</div>
+                <div class="p-6 overflow-y-auto">${contentHTML}</div>
             </div>
         </div>`;
 
@@ -269,38 +269,128 @@ function showStudentForm(studentId = null) {
             </div>
         </form>
     `;
-    openModal(title, formHTML);
+    openModal(title, formHTML, 'max-w-lg');
 }
 
 function showMediaForm(mediaId = null) {
     const isEditing = mediaId !== null;
-    const item = isEditing ? appData.media.find(m => m.id === mediaId) : { type: 'image' };
+    const item = isEditing ? appData.media.find(m => m.id === mediaId) : { type: 'image', url: '' };
     const title = isEditing ? 'Sửa Media' : 'Thêm Media mới';
+    const FILE_SIZE_LIMIT_MB = 10;
+    const FILE_SIZE_LIMIT_BYTES = FILE_SIZE_LIMIT_MB * 1024 * 1024;
 
     const formHTML = `
-        <form id="media-form" data-id="${mediaId || ''}" class="space-y-4">
+        <form id="media-form" data-id="${mediaId || ''}" class="space-y-6">
+            <input type="hidden" name="url" value="${item.url || ''}">
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Loại</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Loại Media</label>
                 <select name="type" class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="image" ${item.type === 'image' ? 'selected' : ''}>Hình ảnh (URL)</option>
-                    <option value="video" ${item.type === 'video' ? 'selected' : ''}>Video (URL)</option>
+                    <option value="image" ${item.type === 'image' ? 'selected' : ''}>Hình ảnh</option>
+                    <option value="video" ${item.type === 'video' ? 'selected' : ''}>Video</option>
+                    <option value="audio" ${item.type === 'audio' ? 'selected' : ''}>Âm thanh</option>
                 </select>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nguồn (URL)</label>
-                <input type="text" name="url" value="${item.url || ''}" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://..."/>
+
+            <div id="media-preview-wrapper" class="w-full aspect-video bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden">
+                <span class="text-gray-500 dark:text-gray-400">Xem trước</span>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Chú thích</label>
-                <textarea name="caption" class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 h-24" placeholder="Mô tả ngắn...">${item.caption || ''}</textarea>
+            
+            <!-- Input sections -->
+            <div id="url-input-section">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dán Link (URL)</label>
+                <input type="url" name="url-input" value="${item.url && item.url.startsWith('http') ? item.url : ''}" class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://..."/>
             </div>
-            <div class="flex justify-end space-x-3 pt-4">
+
+            <div id="file-input-section">
+                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hoặc tải tệp lên</label>
+                 <input type="file" name="file-input" class="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"/>
+                 <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-1" id="file-warning">Cảnh báo: Tải lên video/âm thanh chỉ nên dùng cho các tệp rất ngắn (dưới ${FILE_SIZE_LIMIT_MB}MB).</p>
+            </div>
+            
+            <div id="paste-input-section">
+                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hoặc dán ảnh từ clipboard</label>
+                 <div id="paste-area" class="w-full h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400">
+                    Nhấn Ctrl+V hoặc dán vào đây
+                 </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Chú thích</label>
+                <textarea name="caption" class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 h-20" placeholder="Mô tả ngắn...">${item.caption || ''}</textarea>
+            </div>
+            <div class="flex justify-end space-x-3 pt-4 border-t dark:border-gray-700">
                 <button type="button" id="form-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button>
                 <button type="submit" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu</button>
             </div>
         </form>
     `;
     openModal(title, formHTML);
+
+    const form = document.getElementById('media-form');
+    const typeSelect = form.querySelector('[name="type"]');
+    const urlInput = form.querySelector('[name="url-input"]');
+    const fileInput = form.querySelector('[name="file-input"]');
+    const pasteSection = document.getElementById('paste-input-section');
+    const fileSection = document.getElementById('file-input-section');
+    const fileWarning = document.getElementById('file-warning');
+    const pasteArea = document.getElementById('paste-area');
+    const hiddenUrl = form.querySelector('[name="url"]');
+    const previewWrapper = document.getElementById('media-preview-wrapper');
+
+    const updatePreview = (type, src) => {
+        if (!src) {
+            previewWrapper.innerHTML = `<span class="text-gray-500 dark:text-gray-400">Xem trước</span>`;
+            return;
+        }
+        let previewElement = '';
+        if (type === 'image') {
+            previewElement = `<img src="${src}" class="max-w-full max-h-full object-contain">`;
+        } else if (type === 'video') {
+            previewElement = `<video src="${src}" controls class="max-w-full max-h-full object-contain"></video>`;
+        } else if (type === 'audio') {
+            previewElement = `<audio src="${src}" controls></audio>`;
+        }
+        previewWrapper.innerHTML = previewElement;
+        hiddenUrl.value = src;
+    };
+
+    const updateFormUI = () => {
+        const type = typeSelect.value;
+        pasteSection.classList.toggle('hidden', type !== 'image');
+        fileWarning.classList.toggle('hidden', type === 'image');
+        if (item.url) updatePreview(item.type, item.url);
+    };
+
+    const handleFile = (file) => {
+        if (!file) return;
+        if (file.size > FILE_SIZE_LIMIT_BYTES) {
+            alert(`Tệp quá lớn (tối đa ${FILE_SIZE_LIMIT_MB}MB). Vui lòng chọn tệp nhỏ hơn.`);
+            fileInput.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            updatePreview(typeSelect.value, e.target.result);
+            urlInput.value = '';
+        };
+        reader.readAsDataURL(file);
+    };
+    
+    typeSelect.addEventListener('change', updateFormUI);
+    urlInput.addEventListener('input', () => {
+        updatePreview(typeSelect.value, urlInput.value);
+        fileInput.value = '';
+    });
+    fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+    pasteArea.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const item = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'));
+        if (item) {
+            handleFile(item.getAsFile());
+        }
+    });
+
+    updateFormUI();
 }
 
 function showChangePasswordForm() {
@@ -318,7 +408,7 @@ function showChangePasswordForm() {
             </div>
         </form>
     `;
-    openModal(title, formHTML);
+    openModal(title, formHTML, 'max-w-lg');
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -385,7 +475,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
                 closeModal();
             } else if (form.id === 'media-form') {
-                const updatedMedia = { id: id || crypto.randomUUID(), type: form.type.value, url: form.url.value, caption: form.caption.value };
+                const url = form.url.value;
+                if (!url) {
+                    alert('Nguồn media không được để trống. Vui lòng dán link, tải tệp hoặc dán ảnh.');
+                    return;
+                }
+                const updatedMedia = { id: id || crypto.randomUUID(), type: form.type.value, url: url, caption: form.caption.value };
                 if (id) { appData.media = appData.media.map(m => m.id === id ? updatedMedia : m); } else { appData.media.push(updatedMedia); }
                 updateAndSaveChanges();
                 document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
