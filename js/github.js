@@ -74,8 +74,8 @@ export async function updateFileOnGitHub(data) {
         if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
             detailedMessage = `**Lỗi mạng: Failed to fetch.** Lỗi này có thể do một trong các nguyên nhân sau:\n
 1.  **Sự cố mạng:** Kiểm tra lại kết nối Internet của bạn.
-2.  **Lỗi CORS:** Đây là nguyên nhân phổ biến nhất. Máy chủ trung gian (Cloudflare Worker) đã không trả về header 'Access-Control-Allow-Origin' đúng. Hãy đảm bảo bạn đã cấu hình `ALLOWED_ORIGIN` trên Worker chính xác là URL của trang web này.
-3.  **URL Worker không đúng:** URL trong biến `SERVERLESS_ENDPOINT` có thể sai hoặc Worker chưa được triển khai.
+2.  **Lỗi CORS:** Đây là nguyên nhân phổ biến nhất. Máy chủ trung gian (Cloudflare Worker) đã không trả về header 'Access-Control-Allow-Origin' đúng. Hãy đảm bảo bạn đã cấu hình ALLOWED_ORIGIN trên Worker chính xác là URL của trang web này.
+3.  **URL Worker không đúng:** URL trong biến SERVERLESS_ENDPOINT có thể sai hoặc Worker chưa được triển khai.
 4.  **Worker bị lỗi nặng:** Worker có thể bị crash và không thể xử lý yêu cầu (ví dụ: lỗi cú pháp trong code worker).
 
 **Gợi ý:** Mở Developer Tools (F12), vào tab "Console" và "Network" để xem chi tiết lỗi.`;
