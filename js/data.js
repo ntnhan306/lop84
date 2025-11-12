@@ -1,5 +1,5 @@
-// URL của Cloudflare Worker đóng vai trò là API endpoint
-const API_ENDPOINT = "https://lop84.nhanns23062012.workers.dev/";
+// URL cơ sở của Cloudflare Worker
+const API_ENDPOINT_BASE = "https://lop84.nhanns23062012.workers.dev";
 
 const APP_DATA_KEY = 'lop84_app_data_local_edit';
 
@@ -24,12 +24,9 @@ const getInitialData = () => {
  */
 export async function fetchAppData() {
   try {
-    const response = await fetch(API_ENDPOINT, {
+    const response = await fetch(`${API_ENDPOINT_BASE}/data`, {
         method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        // Thêm cache-busting để đảm bảo luôn lấy dữ liệu mới nhất
+        headers: { 'Content-Type': 'application/json' },
         cache: 'no-store'
     });
 
@@ -40,7 +37,6 @@ export async function fetchAppData() {
         return getInitialData();
     }
     const data = await response.json();
-    // Validate cơ bản để đảm bảo dữ liệu có cấu trúc đúng
     if (!data.students || !data.schedule || !data.media) {
         console.warn('Dữ liệu từ Worker thiếu các trường cần thiết. Sử dụng dữ liệu ban đầu.');
         return getInitialData();
@@ -56,16 +52,15 @@ export async function fetchAppData() {
 /**
  * Gửi dữ liệu ứng dụng đến Cloudflare Worker để lưu vào KV.
  * @param {object} data - Đối tượng dữ liệu ứng dụng cần lưu.
+ * @param {string} authToken - Password hash đã được xác thực để chứng minh quyền ghi.
  * @returns {Promise<{success: boolean, message: string}>}
  */
-export async function saveAppDataToKV(data) {
+export async function saveAppDataToKV(data, authToken) {
      try {
-        const response = await fetch(API_ENDPOINT, {
+        const response = await fetch(`${API_ENDPOINT_BASE}/data`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ authToken, payload: data }),
         });
 
         const result = await response.json();
@@ -82,6 +77,48 @@ export async function saveAppDataToKV(data) {
     }
 }
 
+/**
+ * Lấy password hash từ server. Server sẽ tự tạo hash mặc định nếu chưa tồn tại.
+ * @returns {Promise<string|null>}
+ */
+export async function fetchPasswordHash() {
+    try {
+        const response = await fetch(`${API_ENDPOINT_BASE}/password`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Lỗi máy chủ: ${response.status} - ${errorText}`);
+        }
+        const { hash } = await response.json();
+        return hash;
+    } catch (error) {
+        console.error("Không thể lấy password hash:", error);
+        alert(`Không thể kết nối đến máy chủ xác thực: ${error.message}`);
+        return null;
+    }
+}
+
+/**
+ * Gửi yêu cầu thay đổi mật khẩu đến server.
+ * @param {{currentPasswordHash: string, newPasswordHash: string}} passwordData
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function updatePasswordOnKV({ currentPasswordHash, newPasswordHash }) {
+    try {
+        const response = await fetch(`${API_ENDPOINT_BASE}/password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentPasswordHash, newPasswordHash }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || `Lỗi HTTP ${response.status}`);
+        }
+        return { success: true, message: result.message };
+    } catch (error) {
+        console.error("Lỗi khi cập nhật mật khẩu:", error);
+        return { success: false, message: error.message };
+    }
+}
 
 /**
  * Lấy dữ liệu ứng dụng từ localStorage của trình duyệt. Dùng cho trang chỉnh sửa.
