@@ -1,56 +1,83 @@
 // !!! CÀI ĐẶT QUAN TRỌNG !!!
-// Phương pháp đồng bộ đã được thay đổi để tăng cường bảo mật.
-// Thay vì lưu token trên trình duyệt, chúng ta sẽ gọi một serverless function trung gian.
+// Phương pháp đồng bộ đã được thay đổi để tăng cường bảo mật và tốc độ.
+// Chúng ta sẽ gọi một serverless function trung gian để cập nhật file trực tiếp trên GitHub.
 
-// 1. URL của Serverless Function (ví dụ: Cloudflare Worker, Vercel Function).
-//    Function này sẽ nhận yêu cầu từ trang web và kích hoạt GitHub Action một cách an toàn.
-//    Bạn cần triển khai function này và đặt GITHUB_TOKEN làm biến môi trường trên đó.
-//    Xem ví dụ về mã nguồn serverless function trong tài liệu hoặc comment của dự án.
+// 1. URL của Serverless Function (ví dụ: Cloudflare Worker).
+//    Function này sẽ nhận yêu cầu, lấy SHA của file cũ, và ghi đè nội dung mới.
+//    Bạn cần triển khai function này và đặt các biến môi trường cần thiết (token, repo, origin...).
 const SERVERLESS_ENDPOINT = "https://lop84.nhanns23062012.workers.dev/";
 
 /**
- * Kích hoạt một quy trình (workflow) trên GitHub Actions để cập nhật file data.json.
+ * Gửi dữ liệu đến serverless function để cập nhật file data.json trực tiếp trên GitHub.
  * @param {object} data - Dữ liệu ứng dụng sẽ được lưu.
  * @returns {Promise<{success: boolean, message: string}>} - Kết quả của hoạt động.
  */
 export async function updateFileOnGitHub(data) {
-    if (!SERVERLESS_ENDPOINT) {
-        const message = 'Cấu hình Serverless Endpoint chưa được thiết lập. Vui lòng mở file `js/github.js`, điền URL của serverless function bạn đã triển khai, sau đó thử lại.';
-        alert(message);
+    if (!SERVERLESS_ENDPOINT || !SERVERLESS_ENDPOINT.startsWith('https://')) {
+        const message = 'Lỗi cấu hình: URL của Serverless Endpoint không hợp lệ. Vui lòng kiểm tra file `js/github.js`.';
+        console.error(message);
         return { success: false, message };
     }
 
     try {
         const content = JSON.stringify(data, null, 2);
 
-        // Gọi đến serverless function. Function này sẽ trigger workflow_dispatch trên GitHub.
+        // Gọi đến serverless function.
         const response = await fetch(SERVERLESS_ENDPOINT, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            // Gửi toàn bộ nội dung file mới trong body để workflow xử lý
             body: JSON.stringify({
                 file_content: content,
             }),
         });
         
+        const responseText = await response.text();
+
         if (!response.ok) {
-            // Cố gắng đọc lỗi từ serverless function để debug
-            const errorText = await response.text();
-            throw new Error(`Lỗi từ serverless function: ${response.status} ${response.statusText}. Chi tiết: ${errorText}`);
+            let userMessage = `Máy chủ trung gian phản hồi lỗi (HTTP ${response.status}).`;
+            
+            // Cố gắng phân tích lỗi từ serverless function để debug
+            switch (response.status) {
+                case 403:
+                    userMessage += "\nLỗi 403 (Forbidden): Tên miền của trang web này chưa được cho phép trong cấu hình Worker. Vui lòng kiểm tra biến môi trường `ALLOWED_ORIGIN` trên Cloudflare.";
+                    break;
+                case 404:
+                    userMessage += "\nLỗi 404 (Not Found): URL của Serverless Endpoint không đúng hoặc Worker chưa được triển khai.";
+                    break;
+                case 500:
+                    userMessage += `\nLỗi 500 (Internal Server Error): Có lỗi xảy ra bên trong Cloudflare Worker. Lỗi có thể do GITHUB_TOKEN không hợp lệ, sai tên repo, hoặc sự cố với GitHub API.`;
+                    break;
+            }
+            // Thêm chi tiết từ server vào cuối
+            userMessage += `\n\nChi tiết từ server: ${responseText}`;
+            throw new Error(userMessage);
         }
 
-        // workflow_dispatch API trả về 204 No Content khi thành công.
-        // Điều này chỉ có nghĩa là workflow đã được kích hoạt, không có nghĩa là nó đã chạy xong.
-        return { success: true, message: 'Yêu cầu đồng bộ đã được gửi thành công! Dữ liệu sẽ được cập nhật trên trang công khai sau khoảng 1-2 phút.' };
+        // Worker có thể trả về JSON hoặc text, xử lý cả hai
+        try {
+            const result = JSON.parse(responseText);
+            return { success: true, message: result.message || 'Đồng bộ thành công! Dữ liệu đã được cập nhật. Bạn có thể cần tải lại trang xem để thấy thay đổi.' };
+        } catch (e) {
+             // Nếu không phải JSON, dùng text thuần
+            return { success: true, message: responseText };
+        }
+
 
     } catch (error) {
-        console.error('Lỗi khi kích hoạt GitHub Action:', error);
+        console.error('Lỗi khi gửi yêu cầu đồng bộ:', error);
         
         let detailedMessage = `Đã xảy ra lỗi khi gửi yêu cầu cập nhật: ${error.message}.`;
+        
         if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-            detailedMessage += ' Lỗi này thường xảy ra do sự cố mạng hoặc do chính sách CORS của máy chủ không cho phép yêu cầu từ trang này. Vui lòng kiểm tra kết nối mạng của bạn. Nếu sự cố vẫn tiếp diễn, có thể cần phải cấu hình lại máy chủ trung gian (serverless function) để cho phép các yêu cầu từ tên miền của bạn.';
+            detailedMessage = `**Lỗi mạng: Failed to fetch.** Lỗi này có thể do một trong các nguyên nhân sau:\n
+1.  **Sự cố mạng:** Kiểm tra lại kết nối Internet của bạn.
+2.  **Lỗi CORS:** Đây là nguyên nhân phổ biến nhất. Máy chủ trung gian (Cloudflare Worker) đã không trả về header 'Access-Control-Allow-Origin' đúng. Hãy đảm bảo bạn đã cấu hình `ALLOWED_ORIGIN` trên Worker chính xác là URL của trang web này.
+3.  **URL Worker không đúng:** URL trong biến `SERVERLESS_ENDPOINT` có thể sai hoặc Worker chưa được triển khai.
+4.  **Worker bị lỗi nặng:** Worker có thể bị crash và không thể xử lý yêu cầu (ví dụ: lỗi cú pháp trong code worker).
+
+**Gợi ý:** Mở Developer Tools (F12), vào tab "Console" và "Network" để xem chi tiết lỗi.`;
         }
         
         return { success: false, message: detailedMessage };
