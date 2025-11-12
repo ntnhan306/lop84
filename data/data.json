@@ -1,1 +1,30 @@
-1
+{
+  "students": [],
+  "schedule": {
+    "Thứ Hai": {
+      "morning": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }],
+      "afternoon": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }]
+    },
+    "Thứ Ba": {
+      "morning": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }],
+      "afternoon": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }]
+    },
+    "Thứ Tư": {
+      "morning": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }],
+      "afternoon": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }]
+    },
+    "Thứ Năm": {
+      "morning": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }],
+      "afternoon": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }]
+    },
+    "Thứ Sáu": {
+      "morning": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }],
+      "afternoon": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }]
+    },
+    "Thứ Bảy": {
+      "morning": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }],
+      "afternoon": [{ "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }, { "subject": "" }]
+    }
+  },
+  "media": []
+}
