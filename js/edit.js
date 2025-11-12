@@ -1,8 +1,7 @@
-// v1.31
-import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage } from './data.js';
+// v1.32 - KV Storage
+import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppDataToKV } from './data.js';
 import { getPasswordHash, setPasswordHash, hashPassword } from './auth.js';
 import { renderGallery, renderClassList, renderSchedule } from './ui.js';
-import { updateFileOnGitHub } from './github.js';
 
 let appData = null;
 
@@ -90,7 +89,7 @@ function renderAuthForm(type) {
 }
 
 function updateSyncState(isDirty, message = '') {
-    const button = document.getElementById('sync-github-btn');
+    const button = document.getElementById('sync-kv-btn');
     const statusEl = document.getElementById('sync-status');
     if (!button || !statusEl) return;
 
@@ -133,7 +132,7 @@ function renderEditPage() {
                 <header class="flex justify-between items-center mb-8 pb-4 border-b-2 border-teal-500">
                     <div>
                         <h1 class="text-4xl font-bold text-teal-600 dark:text-teal-400">Chỉnh sửa thông tin Lớp 8/4</h1>
-                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Thêm, sửa, xóa dữ liệu (v1.31)</p>
+                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Lưu trữ trên Cloudflare KV (v1.32)</p>
                     </div>
                     <div class="flex items-center space-x-4">
                         <a href="../view/" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">
@@ -145,10 +144,9 @@ function renderEditPage() {
                      <section class="bg-blue-50 dark:bg-gray-800 border-l-4 border-blue-400 p-4 rounded-r-lg">
                         <h2 class="text-xl font-bold text-blue-800 dark:text-blue-300">Đồng bộ hóa Dữ liệu</h2>
                         <div class="mt-2 text-blue-700 dark:text-blue-200 space-y-2">
-                            <p>Mọi thay đổi sẽ được lưu vào trình duyệt. Khi bạn sẵn sàng, hãy nhấn nút bên dưới để đồng bộ dữ liệu lên máy chủ.</p>
-                            <p class="text-xs">Quá trình này sử dụng một hàm trung gian (serverless function) để cập nhật file một cách an toàn.</p>
+                            <p>Mọi thay đổi sẽ được lưu vào trình duyệt. Khi bạn sẵn sàng, hãy nhấn nút bên dưới để đồng bộ dữ liệu lên máy chủ Cloudflare.</p>
                             <div class="mt-4">
-                                <button id="sync-github-btn" class="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-all">
+                                <button id="sync-kv-btn" class="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-all">
                                     Lưu và Đồng bộ thay đổi
                                 </button>
                                 <div id="sync-status" class="mt-2"></div>
@@ -176,7 +174,7 @@ function renderEditPage() {
                 </main>
                 <footer class="text-center mt-12 text-gray-500 dark:text-gray-400">
                     <p>&copy; ${new Date().getFullYear()} Lớp 8/4. Chế độ chỉnh sửa.</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v1.31</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v1.32</p>
                 </footer>
             </div>
         </div>
@@ -186,7 +184,7 @@ function renderEditPage() {
     document.getElementById('schedule-container').innerHTML = renderSchedule(appData.schedule, true);
     
     // Add event listeners for sync button
-    document.getElementById('sync-github-btn').addEventListener('click', handleSyncToServerless);
+    document.getElementById('sync-kv-btn').addEventListener('click', handleSyncToKV);
     
     // Initialize sync button state
     updateSyncState(false, 'Dữ liệu đã được đồng bộ và cập nhật.');
@@ -203,13 +201,13 @@ async function showEditPage() {
     renderEditPage();
 }
 
-async function handleSyncToServerless() {
-    const button = document.getElementById('sync-github-btn');
+async function handleSyncToKV() {
+    const button = document.getElementById('sync-kv-btn');
     const statusEl = document.getElementById('sync-status');
     
     button.disabled = true;
     button.textContent = 'Đang đồng bộ...';
-    statusEl.innerHTML = `<p class="text-sm mt-2 text-blue-600 dark:text-blue-400">Đang gửi yêu cầu đến máy chủ...</p>`;
+    statusEl.innerHTML = `<p class="text-sm mt-2 text-blue-600 dark:text-blue-400">Đang gửi dữ liệu đến máy chủ Cloudflare...</p>`;
 
     const dataToSync = getAppDataFromStorage();
     if (!dataToSync) {
@@ -219,7 +217,7 @@ async function handleSyncToServerless() {
         return;
     }
     
-    const result = await updateFileOnGitHub(dataToSync);
+    const result = await saveAppDataToKV(dataToSync);
 
     if (result.success) {
         updateSyncState(false, result.message);
