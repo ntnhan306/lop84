@@ -1,3 +1,4 @@
+// v1.30
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage } from './data.js';
 import { getPasswordHash, setPasswordHash, hashPassword } from './auth.js';
 import { renderGallery, renderClassList, renderSchedule } from './ui.js';
