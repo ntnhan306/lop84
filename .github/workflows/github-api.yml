@@ -1,4 +1,4 @@
-name: Update Data File via API
+name: Update Data File via AP
 
 on:
   workflow_dispatch:
