@@ -28,7 +28,12 @@
         <header class="flex flex-wrap justify-between items-center gap-4 mb-6 pb-4 border-b-2 border-indigo-500">
           <div>
             <h1 class="text-4xl font-bold text-indigo-600 dark:text-indigo-400">Thông tin Lớp 8/4</h1>
-            <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Trang xem thông tin (Tự động cập nhật)</p>
+            <div class="flex items-center gap-4 mt-1">
+                <p class="text-lg text-gray-600 dark:text-gray-300">Trang xem thông tin</p>
+                <div id="connection-status" class="flex items-center gap-2 text-sm">
+                    <!-- Status will be injected by JS -->
+                </div>
+            </div>
           </div>
           <a
             href="../edit/"

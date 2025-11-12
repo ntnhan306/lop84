@@ -31,21 +31,18 @@ export async function fetchAppData() {
     });
 
     if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Không thể đọc nội dung lỗi.');
-        console.error(`Lỗi HTTP ${response.status} khi lấy dữ liệu từ Worker. Phản hồi: ${errorText}`);
-        alert(`Không thể tải dữ liệu của lớp (Lỗi: ${response.status}). Vui lòng thử lại sau. Kiểm tra console (F12) để biết thêm chi tiết.`);
-        return getInitialData();
+        const errorText = await response.text().catch(() => `Máy chủ phản hồi với mã lỗi ${response.status}`);
+        throw new Error(`Lỗi HTTP ${response.status}: ${errorText}`);
     }
     const data = await response.json();
     if (!data.students || !data.schedule || !data.media) {
-        console.warn('Dữ liệu từ Worker thiếu các trường cần thiết. Sử dụng dữ liệu ban đầu.');
+        console.warn('Dữ liệu từ Worker thiếu các trường cần thiết. Trả về cấu trúc mặc định.');
         return getInitialData();
     }
     return data;
   } catch (error) {
-    console.error('Lỗi mạng hoặc lỗi parse JSON khi lấy dữ liệu:', error);
-    alert('Có lỗi mạng xảy ra khi tải dữ liệu của lớp. Vui lòng kiểm tra kết nối internet.');
-    return getInitialData();
+    // Re-throw network hoặc parsing errors để lớp giao diện có thể xử lý chúng.
+    throw error;
   }
 }
 
