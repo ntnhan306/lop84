@@ -1,4 +1,4 @@
-// v1.30
+// v1.31
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage } from './data.js';
 import { getPasswordHash, setPasswordHash, hashPassword } from './auth.js';
 import { renderGallery, renderClassList, renderSchedule } from './ui.js';
@@ -133,7 +133,7 @@ function renderEditPage() {
                 <header class="flex justify-between items-center mb-8 pb-4 border-b-2 border-teal-500">
                     <div>
                         <h1 class="text-4xl font-bold text-teal-600 dark:text-teal-400">Chỉnh sửa thông tin Lớp 8/4</h1>
-                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Thêm, sửa, xóa dữ liệu (v1.30)</p>
+                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Thêm, sửa, xóa dữ liệu (v1.31)</p>
                     </div>
                     <div class="flex items-center space-x-4">
                         <a href="../view/" class="px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">
@@ -176,7 +176,7 @@ function renderEditPage() {
                 </main>
                 <footer class="text-center mt-12 text-gray-500 dark:text-gray-400">
                     <p>&copy; ${new Date().getFullYear()} Lớp 8/4. Chế độ chỉnh sửa.</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v1.30</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v1.31</p>
                 </footer>
             </div>
         </div>
@@ -308,104 +308,124 @@ function showMediaForm(mediaId = null) {
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    authContainer = document.getElementById('auth-container');
-    editContainer = document.getElementById('edit-container');
-    modalContainer = document.getElementById('modal-container');
+    try {
+        authContainer = document.getElementById('auth-container');
+        editContainer = document.getElementById('edit-container');
+        modalContainer = document.getElementById('modal-container');
 
-    editContainer.addEventListener('input', (e) => {
-        const target = e.target;
-        if (target.matches('#schedule-container input')) {
-            const { day, session, period } = target.dataset;
-            appData.schedule[day][session][parseInt(period)].subject = target.value;
-            updateAndSaveChanges();
+        if (!authContainer || !editContainer || !modalContainer) {
+            throw new Error("Không thể khởi tạo giao diện. Một hoặc nhiều vùng chứa chính (container) không được tìm thấy trong DOM.");
         }
-    });
 
-    editContainer.addEventListener('click', (e) => {
-        const action = e.target.closest('[data-action]')?.dataset.action;
-        if (!action) return;
-        
-        const id = e.target.closest('[data-id]')?.dataset.id;
+        editContainer.addEventListener('input', (e) => {
+            const target = e.target;
+            if (target.matches('#schedule-container input')) {
+                const { day, session, period } = target.dataset;
+                appData.schedule[day][session][parseInt(period)].subject = target.value;
+                updateAndSaveChanges();
+            }
+        });
 
-        switch (action) {
-            case 'add-student':
-                showStudentForm();
-                break;
-            case 'edit-student':
-                showStudentForm(id);
-                break;
-            case 'delete-student':
-                if (confirm('Bạn có chắc muốn xóa học sinh này?')) {
-                    appData.students = appData.students.filter(s => s.id !== id);
-                    updateAndSaveChanges();
-                    document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
+        editContainer.addEventListener('click', (e) => {
+            const action = e.target.closest('[data-action]')?.dataset.action;
+            if (!action) return;
+            
+            const id = e.target.closest('[data-id]')?.dataset.id;
+
+            switch (action) {
+                case 'add-student':
+                    showStudentForm();
+                    break;
+                case 'edit-student':
+                    showStudentForm(id);
+                    break;
+                case 'delete-student':
+                    if (confirm('Bạn có chắc muốn xóa học sinh này?')) {
+                        appData.students = appData.students.filter(s => s.id !== id);
+                        updateAndSaveChanges();
+                        document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
+                    }
+                    break;
+                case 'add-media':
+                    showMediaForm();
+                    break;
+                case 'edit-media':
+                    showMediaForm(id);
+                    break;
+                case 'delete-media':
+                    if (confirm('Bạn có chắc muốn xóa mục này?')) {
+                        appData.media = appData.media.filter(m => m.id !== id);
+                        updateAndSaveChanges();
+                        document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
+                    }
+                    break;
+            }
+        });
+
+        modalContainer.addEventListener('click', (e) => {
+            if (e.target.id === 'modal-backdrop' || e.target.id === 'modal-close-btn' || e.target.closest('#modal-close-btn') || e.target.id === 'form-cancel-btn') {
+                closeModal();
+            }
+        });
+
+        modalContainer.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const id = form.dataset.id;
+
+            if (form.id === 'student-form') {
+                const updatedStudent = {
+                    id: id || crypto.randomUUID(),
+                    name: form.name.value,
+                    studentId: form.studentId.value,
+                    dob: form.dob.value,
+                    phone: form.phone.value,
+                    notes: form.notes.value,
+                };
+                if (id) {
+                    appData.students = appData.students.map(s => s.id === id ? updatedStudent : s);
+                } else {
+                    appData.students.push(updatedStudent);
                 }
-                break;
-            case 'add-media':
-                showMediaForm();
-                break;
-            case 'edit-media':
-                showMediaForm(id);
-                break;
-            case 'delete-media':
-                if (confirm('Bạn có chắc muốn xóa mục này?')) {
-                    appData.media = appData.media.filter(m => m.id !== id);
-                    updateAndSaveChanges();
-                    document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
+                updateAndSaveChanges();
+                document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
+            } else if (form.id === 'media-form') {
+                const updatedMedia = {
+                    id: id || crypto.randomUUID(),
+                    type: form.type.value,
+                    url: form.url.value,
+                    caption: form.caption.value,
+                };
+                if (id) {
+                    appData.media = appData.media.map(m => m.id === id ? updatedMedia : m);
+                } else {
+                    appData.media.push(updatedMedia);
                 }
-                break;
-        }
-    });
-
-    modalContainer.addEventListener('click', (e) => {
-        if (e.target.id === 'modal-backdrop' || e.target.id === 'modal-close-btn' || e.target.closest('#modal-close-btn') || e.target.id === 'form-cancel-btn') {
+                updateAndSaveChanges();
+                document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
+            }
+            
             closeModal();
+        });
+
+        if (getPasswordHash()) {
+            renderAuthForm('login');
+        } else {
+            renderAuthForm('set');
         }
-    });
-
-    modalContainer.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const form = e.target;
-        const id = form.dataset.id;
-
-        if (form.id === 'student-form') {
-            const updatedStudent = {
-                id: id || crypto.randomUUID(),
-                name: form.name.value,
-                studentId: form.studentId.value,
-                dob: form.dob.value,
-                phone: form.phone.value,
-                notes: form.notes.value,
-            };
-            if (id) {
-                appData.students = appData.students.map(s => s.id === id ? updatedStudent : s);
-            } else {
-                appData.students.push(updatedStudent);
-            }
-            updateAndSaveChanges();
-            document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
-        } else if (form.id === 'media-form') {
-            const updatedMedia = {
-                id: id || crypto.randomUUID(),
-                type: form.type.value,
-                url: form.url.value,
-                caption: form.caption.value,
-            };
-            if (id) {
-                appData.media = appData.media.map(m => m.id === id ? updatedMedia : m);
-            } else {
-                appData.media.push(updatedMedia);
-            }
-            updateAndSaveChanges();
-            document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
-        }
-        
-        closeModal();
-    });
-
-    if (getPasswordHash()) {
-        renderAuthForm('login');
-    } else {
-        renderAuthForm('set');
+    } catch (error) {
+        console.error("Lỗi nghiêm trọng khi khởi tạo trang chỉnh sửa:", error);
+        document.body.innerHTML = `
+            <div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+                <div class="max-w-lg w-full bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8">
+                    <h1 class="text-2xl font-bold text-red-600 dark:text-red-400 text-center">Đã xảy ra lỗi nghiêm trọng</h1>
+                    <p class="mt-2 text-center text-gray-600 dark:text-gray-300">Trang chỉnh sửa không thể tải. Vui lòng thử làm mới trang hoặc liên hệ quản trị viên.</p>
+                    <div class="mt-4 text-left bg-gray-100 dark:bg-gray-900 p-4 rounded-md font-mono text-sm text-red-500 dark:text-red-300 overflow-auto">
+                        <p class="font-semibold">Thông tin lỗi:</p>
+                        <pre class="mt-1 whitespace-pre-wrap">${error.stack || error.message}</pre>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 });

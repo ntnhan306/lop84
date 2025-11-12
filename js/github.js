@@ -27,6 +27,7 @@ export async function updateFileOnGitHub(data) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Origin': window.location.origin,
             },
             body: JSON.stringify({
                 file_content: content,
