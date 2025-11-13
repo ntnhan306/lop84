@@ -61,7 +61,7 @@ export async function fetchAppData() {
  * Gửi dữ liệu ứng dụng đến Cloudflare Worker để lưu.
  * Worker sẽ phân tách dữ liệu và lưu vào D1 và KV tương ứng.
  * @param {object} data - Đối tượng dữ liệu ứng dụng cần lưu.
- * @param {string} authToken - Password hash đã được xác thực để chứng minh quyền ghi.
+ * @param {string} authToken - Token xác thực phiên nhận được sau khi đăng nhập thành công.
  * @returns {Promise<{success: boolean, message: string}>}
  */
 export async function saveAppData(data, authToken) {
@@ -87,45 +87,49 @@ export async function saveAppData(data, authToken) {
 }
 
 /**
- * Lấy password hash từ server. Server sẽ tự tạo hash mặc định nếu chưa tồn tại.
- * @returns {Promise<string|null>}
+ * Gửi mật khẩu thô đến server để xác thực.
+ * @param {string} password - Mật khẩu người dùng nhập vào.
+ * @returns {Promise<{success: boolean, token: string|null, message: string}>}
  */
-export async function fetchPasswordHash() {
+export async function authenticate(password) {
     try {
-        const response = await fetch(`${API_ENDPOINT_BASE}/password`);
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Lỗi máy chủ: ${response.status} - ${errorText}`);
-        }
-        const { hash } = await response.json();
-        return hash;
-    } catch (error) {
-        console.error("Không thể lấy password hash:", error);
-        alert(`Không thể kết nối đến máy chủ xác thực: ${error.message}`);
-        return null;
-    }
-}
-
-/**
- * Gửi yêu cầu thay đổi mật khẩu đến server.
- * @param {{currentPasswordHash: string, newPasswordHash: string}} passwordData
- * @returns {Promise<{success: boolean, message: string}>}
- */
-export async function updatePasswordOnKV({ currentPasswordHash, newPasswordHash }) {
-    try {
-        const response = await fetch(`${API_ENDPOINT_BASE}/password`, {
+        const response = await fetch(`${API_ENDPOINT_BASE}/auth`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ currentPasswordHash, newPasswordHash }),
+            body: JSON.stringify({ password }),
         });
         const result = await response.json();
         if (!response.ok) {
             throw new Error(result.message || `Lỗi HTTP ${response.status}`);
         }
-        return { success: true, message: result.message };
+        return { success: true, token: result.token, message: result.message };
+    } catch (error) {
+        console.error("Lỗi xác thực:", error);
+        return { success: false, token: null, message: error.message };
+    }
+}
+
+
+/**
+ * Gửi yêu cầu thay đổi mật khẩu đến server.
+ * @param {{currentPassword: string, newPassword: string, authToken: string}} passwordData
+ * @returns {Promise<{success: boolean, newToken: string|null, message: string}>}
+ */
+export async function updatePassword({ currentPassword, newPassword, authToken }) {
+    try {
+        const response = await fetch(`${API_ENDPOINT_BASE}/password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ currentPassword, newPassword, authToken }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || `Lỗi HTTP ${response.status}`);
+        }
+        return { success: true, newToken: result.newToken, message: result.message };
     } catch (error) {
         console.error("Lỗi khi cập nhật mật khẩu:", error);
-        return { success: false, message: error.message };
+        return { success: false, newToken: null, message: error.message };
     }
 }
 

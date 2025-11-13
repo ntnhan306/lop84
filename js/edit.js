@@ -1,6 +1,5 @@
 // v3.0 - The Spreadsheet Experience
-import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, fetchPasswordHash, updatePasswordOnKV } from './data.js';
-import { hashPassword } from './auth.js';
+import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
 let appData = null;
@@ -15,7 +14,7 @@ let authContainer;
 let editContainer;
 let modalContainer;
 
-function renderAuthForm(storedHash) {
+function renderAuthForm() {
     authContainer.innerHTML = `
         <div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
             <div class="max-w-md w-full bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8 space-y-6">
@@ -28,7 +27,7 @@ function renderAuthForm(storedHash) {
                         <label for="password" class="sr-only">Mật khẩu</label>
                         <input id="password" name="password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Mật khẩu">
                     </div>
-                    <p id="auth-error" class="text-red-500 text-sm text-center"></p>
+                    <p id="auth-error" class="text-red-500 text-sm text-center min-h-[20px]"></p>
                     <div>
                         <button type="submit" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400">
                             Đăng nhập
@@ -41,20 +40,22 @@ function renderAuthForm(storedHash) {
 
     document.getElementById('auth-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const button = e.target.querySelector('button');
-        button.disabled = true;
-        button.textContent = 'Đang xử lý...';
-        
-        const password = e.target.password.value;
+        const form = e.target;
+        const button = form.querySelector('button');
+        const password = form.password.value;
         const errorEl = document.getElementById('auth-error');
+        
+        button.disabled = true;
+        button.textContent = 'Đang xác thực...';
         errorEl.textContent = '';
 
-        const inputHash = await hashPassword(password);
-        if (inputHash === storedHash) {
-            sessionAuthToken = inputHash;
+        const result = await authenticate(password);
+
+        if (result.success) {
+            sessionAuthToken = result.token;
             await showEditPage();
         } else {
-            errorEl.textContent = 'Mật khẩu không đúng. Vui lòng thử lại.';
+            errorEl.textContent = result.message || 'Lỗi không xác định.';
             button.disabled = false;
             button.textContent = 'Đăng nhập';
         }
@@ -219,11 +220,15 @@ function renderScheduleSection() {
 
 async function showEditPage() {
     authContainer.innerHTML = `<div class="flex items-center justify-center h-screen">Đang tải dữ liệu mới nhất...</div>`;
-    appData = await fetchAppData();
-    saveAppDataToStorage(appData);
-    authContainer.classList.add('hidden');
-    editContainer.classList.remove('hidden');
-    renderEditPage();
+    try {
+        appData = await fetchAppData();
+        saveAppDataToStorage(appData);
+        authContainer.classList.add('hidden');
+        editContainer.classList.remove('hidden');
+        renderEditPage();
+    } catch(error) {
+        authContainer.innerHTML = `<div class="flex items-center justify-center h-screen text-red-500 p-4 text-center">Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối và thử lại. <br/><small>${error.message}</small></div>`;
+    }
 }
 
 async function handleSync() {
@@ -437,8 +442,9 @@ function showChangePasswordForm() {
     const title = 'Đổi Mật khẩu';
     const formHTML = `
         <form id="change-password-form" class="space-y-4">
-            <p id="change-pass-error" class="text-red-500 text-sm"></p><p id="change-pass-success" class="text-green-500 text-sm"></p>
-            <input type="password" name="currentPassword" placeholder="Mật khẩu hiện tại" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+            <p id="change-pass-error" class="text-red-500 text-sm min-h-[20px]"></p>
+            <p id="change-pass-success" class="text-green-500 text-sm min-h-[20px]"></p>
+            <input type="password" name="currentPassword" placeholder="Mật khẩu hiện tại (hoặc mật khẩu đặc biệt)" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"/>
             <input type="password" name="newPassword" placeholder="Mật khẩu mới (ít nhất 6 ký tự)" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"/>
             <input type="password" name="confirmNewPassword" placeholder="Xác nhận mật khẩu mới" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"/>
             <div class="flex justify-end space-x-3 pt-4"><button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500">Hủy</button><button type="submit" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600">Lưu thay đổi</button></div>
@@ -562,34 +568,37 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const { currentPassword, newPassword, confirmNewPassword } = form;
                 const errorEl = document.getElementById('change-pass-error');
                 const successEl = document.getElementById('change-pass-success');
+                const submitButton = form.querySelector('button[type="submit"]');
+
                 errorEl.textContent = ''; successEl.textContent = '';
 
                 if (newPassword.value !== confirmNewPassword.value) { errorEl.textContent = 'Mật khẩu mới không khớp.'; return; }
                 if (newPassword.value.length < 6) { errorEl.textContent = 'Mật khẩu mới phải có ít nhất 6 ký tự.'; return; }
                 
-                const currentPasswordHash = await hashPassword(currentPassword.value);
-                if (currentPasswordHash !== sessionAuthToken) { errorEl.textContent = 'Mật khẩu hiện tại không đúng.'; return; }
-                
-                const newPasswordHash = await hashPassword(newPassword.value);
-                form.querySelector('button[type="submit"]').disabled = true;
+                submitButton.disabled = true;
+                submitButton.textContent = 'Đang xử lý...';
 
-                const result = await updatePasswordOnKV({ currentPasswordHash, newPasswordHash });
+                const result = await updatePassword({
+                    currentPassword: currentPassword.value,
+                    newPassword: newPassword.value,
+                    authToken: sessionAuthToken,
+                });
 
                 if (result.success) {
-                    sessionAuthToken = newPasswordHash;
+                    sessionAuthToken = result.newToken; // Update session token with the new hash
                     successEl.textContent = 'Mật khẩu đã được thay đổi! Cửa sổ sẽ đóng sau 3 giây.';
                     setTimeout(closeModal, 3000);
                 } else {
                     errorEl.textContent = `Lỗi: ${result.message}`;
-                    form.querySelector('button[type="submit"]').disabled = false;
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Lưu thay đổi';
                 }
             }
         });
 
-        authContainer.innerHTML = `<div class="flex items-center justify-center h-screen">Đang kết nối đến máy chủ xác thực...</div>`;
-        const storedHash = await fetchPasswordHash();
-        if (storedHash) renderAuthForm(storedHash);
-        else authContainer.innerHTML = `<div class="flex items-center justify-center h-screen text-red-500 p-4 text-center">Không thể lấy thông tin xác thực. Vui lòng kiểm tra cấu hình Worker và kết nối mạng.</div>`;
+        // Initial entry point
+        authContainer.innerHTML = `<div class="flex items-center justify-center h-screen">Đang khởi tạo...</div>`;
+        renderAuthForm();
 
     } catch (error) {
         console.error("Lỗi nghiêm trọng khi khởi tạo:", error);
