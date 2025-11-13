@@ -1,4 +1,4 @@
-// v3.1 - The Accordion & Progress Update
+// v3.2 - Stability and Bugfix Update
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
@@ -118,7 +118,6 @@ function toggleAccordion(sectionId) {
     if (currentlyOpenHeader && currentlyOpenHeader.dataset.accordionId !== sectionId) {
         currentlyOpenHeader.classList.remove('open');
         currentlyOpenContent.classList.remove('open');
-        updateOpenAccordionHeight();
     }
     
     const newHeader = document.querySelector(`.accordion-header[data-accordion-id="${sectionId}"]`);
@@ -129,18 +128,8 @@ function toggleAccordion(sectionId) {
         newContent.classList.toggle('open');
         openAccordionId = newHeader.classList.contains('open') ? sectionId : null;
     }
-    updateOpenAccordionHeight();
 }
 
-function updateOpenAccordionHeight() {
-    // This is a helper to ensure that if content *inside* an open accordion changes size
-    // (e.g. adding a student row), the accordion's max-height is recalculated.
-    // In our simple open/close case, toggling the class is enough, but this is good practice.
-    const openContent = document.querySelector('.accordion-content.open');
-    if (openContent) {
-        // No specific action needed with pure CSS transition, but would be useful for JS animation
-    }
-}
 
 function renderEditPage() {
     if (!appData) return;
@@ -315,10 +304,10 @@ async function handleSync() {
     }
 }
 
-function openModal(title, contentHTML, size = 'max-w-4xl', isSpreadsheet = false) {
+function openModal({ title, contentHTML, size = 'max-w-4xl', isSpreadsheet = false, onOpened = null }) {
     modalContainer.innerHTML = `
         <div id="modal-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 transition-opacity duration-300 ease-in-out" style="opacity: 0;">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${size} max-h-[90vh] flex flex-col transform scale-95 transition-all duration-300 ease-in-out" style="opacity: 0;">
+            <div id="modal-box" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${size} max-h-[90vh] flex flex-col transform scale-95 transition-all duration-300 ease-in-out" style="opacity: 0;">
                 <div class="flex justify-between items-center p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
                     <h3 class="text-xl font-semibold text-gray-900 dark:text-white">${title}</h3>
                     <button id="modal-close-btn" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
@@ -334,14 +323,23 @@ function openModal(title, contentHTML, size = 'max-w-4xl', isSpreadsheet = false
                 ` : ''}
             </div>
         </div>`;
+    
+    const backdrop = document.getElementById('modal-backdrop');
+    const modalBox = document.getElementById('modal-box');
+    
+    // Animate in
+    requestAnimationFrame(() => {
+        backdrop.style.opacity = '1';
+        modalBox.style.opacity = '1';
+        modalBox.style.transform = 'scale(1)';
+    });
 
-    setTimeout(() => {
-        const backdrop = document.getElementById('modal-backdrop');
-        const modal = backdrop.querySelector(':scope > div');
-        if (backdrop) backdrop.style.opacity = '1';
-        if (modal) { modal.style.opacity = '1'; modal.style.transform = 'scale(1)'; }
-    }, 10);
+    // Execute callback after transition
+    if (onOpened) {
+        modalBox.addEventListener('transitionend', onOpened, { once: true });
+    }
 }
+
 
 function closeModal() {
     const backdrop = document.getElementById('modal-backdrop');
@@ -355,108 +353,137 @@ function closeModal() {
 
 function showClassListSpreadsheet() {
     const title = 'Chỉnh sửa Danh sách Lớp';
-    openModal(title, '<div id="spreadsheet-container" class="h-[65vh]"></div>', 'max-w-7xl', true);
+    const contentHTML = '<div id="spreadsheet-container" class="h-[65vh] w-full"></div>';
     
-    const columns = appData.studentColumns.map(col => ({
-        type: 'text',
-        title: col.label,
-        width: col.key === 'name' ? 250 : (col.key === 'notes' ? 300 : 150),
-        name: col.key,
-        readOnly: col.readonly || false,
-    }));
+    openModal({
+        title,
+        contentHTML,
+        size: 'max-w-7xl',
+        isSpreadsheet: true,
+        onOpened: () => {
+            const spreadsheetEl = document.getElementById('spreadsheet-container');
+            if (!spreadsheetEl) {
+                console.error("Spreadsheet container not found after modal opened.");
+                return;
+            }
 
-    const data = appData.students.map(student => {
-        const row = {};
-        appData.studentColumns.forEach(col => { row[col.key] = student[col.key] || ''; });
-        return row;
-    });
+            const columns = appData.studentColumns.map(col => ({
+                type: 'text',
+                title: col.label,
+                width: col.key === 'name' ? 250 : (col.key === 'notes' ? 300 : 150),
+                name: col.key,
+                readOnly: col.readonly || false,
+            }));
 
-    const spreadsheetEl = document.getElementById('spreadsheet-container');
-    const spreadsheet = jspreadsheet(spreadsheetEl, {
-        data: data,
-        columns: columns,
-        allowInsertRow: true,
-        allowInsertColumn: true,
-        allowDeleteRow: true,
-        allowDeleteColumn: true,
-        allowRenameColumn: true,
-        columnDrag: true,
-        rowDrag: true,
-        license: 'CE'
-    });
-
-    modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
-        const newData = spreadsheet.getData();
-        const newHeaders = spreadsheet.getHeaders(true);
-
-        appData.studentColumns = newHeaders.map((header, index) => {
-             const key = spreadsheet.options.columns[index]?.name || `custom_${Date.now()}_${index}`;
-             const existingCol = appData.studentColumns.find(c => c.key === key);
-             return {
-                 key: key,
-                 label: header,
-                 readonly: existingCol?.readonly || false
-             };
-        });
-
-        appData.students = newData.map((row, index) => {
-            const student = { id: appData.students[index]?.id || crypto.randomUUID() };
-            appData.studentColumns.forEach((col, colIndex) => {
-                student[col.key] = row[colIndex];
+            const data = appData.students.map(student => {
+                const row = {};
+                appData.studentColumns.forEach(col => { row[col.key] = student[col.key] || ''; });
+                return row;
             });
-            return student;
-        });
 
-        updateAndSaveChanges();
-        renderClassListSection();
-        closeModal();
-    };
+            const spreadsheet = jspreadsheet(spreadsheetEl, {
+                data: data,
+                columns: columns,
+                allowInsertRow: true,
+                allowInsertColumn: true,
+                allowDeleteRow: true,
+                allowDeleteColumn: true,
+                allowRenameColumn: true,
+                columnDrag: true,
+                rowDrag: true,
+                license: 'CE'
+            });
+
+            modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
+                const newData = spreadsheet.getData();
+                const newHeaders = spreadsheet.getHeaders(true);
+                
+                // Get original column keys before potential reordering/renaming
+                const originalColumns = spreadsheet.options.columns.map(c => c.name);
+
+                appData.studentColumns = newHeaders.map((header, index) => {
+                     const key = originalColumns[index] || `custom_${Date.now()}_${index}`;
+                     const existingCol = appData.studentColumns.find(c => c.key === key);
+                     return {
+                         key: key,
+                         label: header,
+                         readonly: existingCol?.readonly || false
+                     };
+                });
+
+                appData.students = newData.map((row, index) => {
+                    const student = { id: appData.students[index]?.id || crypto.randomUUID() };
+                    appData.studentColumns.forEach((col, colIndex) => {
+                        student[col.key] = row[colIndex];
+                    });
+                    return student;
+                });
+
+                updateAndSaveChanges();
+                renderClassListSection();
+                closeModal();
+            };
+        }
+    });
 }
 
 function showScheduleSpreadsheet() {
     const title = "Chỉnh sửa Thời khóa biểu";
-    openModal(title, '<div id="spreadsheet-container" class="h-[65vh]"></div>', 'max-w-7xl', true);
+    const contentHTML = '<div id="spreadsheet-container" class="h-[65vh] w-full"></div>';
 
-    const days = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-    const columns = [
-        { type: 'text', title: 'Buổi', width: 80, readOnly: true },
-        { type: 'text', title: 'Tiết', width: 80, readOnly: true },
-        ...days.map(day => ({ type: 'text', title: day, width: 150 }))
-    ];
+    openModal({
+        title,
+        contentHTML,
+        size: 'max-w-7xl',
+        isSpreadsheet: true,
+        onOpened: () => {
+            const spreadsheetEl = document.getElementById('spreadsheet-container');
+             if (!spreadsheetEl) {
+                console.error("Spreadsheet container not found after modal opened.");
+                return;
+            }
 
-    const data = [];
-    const sessions = [{name: 'Sáng', key: 'morning'}, {name: 'Chiều', key: 'afternoon'}];
-    sessions.forEach(session => {
-        for (let i = 0; i < 5; i++) {
-            const row = [session.name, `Tiết ${i + 1}`];
-            days.forEach(day => {
-                row.push(appData.schedule[day]?.[session.key]?.[i]?.subject || '');
+            const days = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+            const columns = [
+                { type: 'text', title: 'Buổi', width: 80, readOnly: true },
+                { type: 'text', title: 'Tiết', width: 80, readOnly: true },
+                ...days.map(day => ({ type: 'text', title: day, width: 150 }))
+            ];
+
+            const data = [];
+            const sessions = [{name: 'Sáng', key: 'morning'}, {name: 'Chiều', key: 'afternoon'}];
+            sessions.forEach(session => {
+                for (let i = 0; i < 5; i++) {
+                    const row = [session.name, `Tiết ${i + 1}`];
+                    days.forEach(day => {
+                        row.push(appData.schedule[day]?.[session.key]?.[i]?.subject || '');
+                    });
+                    data.push(row);
+                }
             });
-            data.push(row);
+
+            const spreadsheet = jspreadsheet(spreadsheetEl, {
+                data: data,
+                columns: columns,
+                license: 'CE',
+            });
+            
+            modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
+                const rawData = spreadsheet.getData();
+                sessions.forEach((session, sessionIndex) => {
+                    for (let i = 0; i < 5; i++) {
+                         const rowIndex = sessionIndex * 5 + i;
+                         days.forEach((day, dayIndex) => {
+                             appData.schedule[day][session.key][i].subject = rawData[rowIndex][dayIndex + 2];
+                         });
+                    }
+                });
+                updateAndSaveChanges();
+                renderScheduleSection();
+                closeModal();
+            };
         }
     });
-
-    const spreadsheetEl = document.getElementById('spreadsheet-container');
-    const spreadsheet = jspreadsheet(spreadsheetEl, {
-        data: data,
-        columns: columns,
-        license: 'CE',
-    });
-    
-    modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
-        const rawData = spreadsheet.getData();
-        sessions.forEach((session, sessionIndex) => {
-            for (let i = 0; i < 5; i++) {
-                 const rowIndex = sessionIndex * 5 + i;
-                 days.forEach((day, dayIndex) => {
-                     appData.schedule[day][session.key][i].subject = rawData[rowIndex][dayIndex + 2];
-                 });
-            }
-        });
-        updateAndSaveChanges();
-        renderScheduleSection();
-        closeModal();
-    };
 }
 
 function showMediaForm(mediaId = null) {
@@ -481,7 +508,7 @@ function showMediaForm(mediaId = null) {
             <div class="flex justify-end space-x-3 pt-4 border-t dark:border-gray-700"><button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button><button type="submit" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu</button></div>
         </form>
     `;
-    openModal(title, formHTML, 'max-w-2xl');
+    openModal({ title, contentHTML, size: 'max-w-2xl' });
 
     const form = document.getElementById('media-form');
     const typeSelect = form.querySelector('[name="type"]');
@@ -514,7 +541,7 @@ function showChangePasswordForm() {
             <input type="password" name="confirmNewPassword" placeholder="Xác nhận mật khẩu mới" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"/>
             <div class="flex justify-end space-x-3 pt-4"><button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500">Hủy</button><button type="submit" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600">Lưu thay đổi</button></div>
         </form>`;
-    openModal(title, formHTML, 'max-w-lg');
+    openModal({ title, contentHTML, size: 'max-w-lg' });
 }
 
 
@@ -550,10 +577,9 @@ async function handleFileUploads(files) {
     const progressText = document.getElementById('progress-text');
     const progressBar = document.getElementById('progress-bar');
     
-    let fileIndex = 0;
-    for (const file of files) {
-        fileIndex++;
-        progressText.textContent = `Đang xử lý tệp ${fileIndex}/${files.length}: ${file.name}...`;
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        progressText.textContent = `Đang xử lý tệp ${i + 1}/${files.length}: ${file.name}...`;
         progressBar.style.width = '0%';
 
         try {
@@ -588,7 +614,7 @@ document.addEventListener('DOMContentLoaded', async () => {
              const action = target.dataset.action;
              if (action === 'upload-multi-media') {
                  const files = target.files;
-                 if (!files.length) return;
+                 if (!files || files.length === 0) return;
                  handleFileUploads(files);
                  target.value = ''; // Reset input to allow re-uploading the same file
              }
@@ -657,10 +683,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         modalContainer.addEventListener('click', (e) => {
-            const button = e.target.closest('button');
-            if (!button) return;
-            const action = button.dataset.action;
-            if (e.target.id === 'modal-backdrop' || e.target.id === 'modal-close-btn' || button.closest('#modal-close-btn') || action === 'modal-cancel') {
+            const target = e.target;
+            const action = target.closest('[data-action]')?.dataset.action;
+
+            if (target.id === 'modal-backdrop' || target.closest('#modal-close-btn') || action === 'modal-cancel') {
                 closeModal();
             }
         });
@@ -677,7 +703,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (id) { appData.media = appData.media.map(m => m.id === id ? updatedMedia : m); } else { appData.media.push(updatedMedia); }
                 updateAndSaveChanges(); renderGallerySection(); closeModal();
             } else if (form.id === 'change-password-form') {
-                const { currentPassword, newPassword, confirmNewPassword } = form;
+                const { currentPassword, newPassword, confirmNewPassword } = form.elements;
                 const errorEl = document.getElementById('change-pass-error');
                 const successEl = document.getElementById('change-pass-success');
                 const submitButton = form.querySelector('button[type="submit"]');
