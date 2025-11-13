@@ -1,3 +1,4 @@
+
 import { fetchAppData } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons, openLightbox } from './ui.js';
 
