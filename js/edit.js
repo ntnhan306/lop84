@@ -227,6 +227,13 @@ function renderAllSections() {
     document.getElementById('schedule-container').innerHTML = renderSchedule(appData.schedule, true);
 }
 
+function updateOpenAccordionHeight(accordionName) {
+    const content = document.getElementById(`${accordionName}-accordion-content`);
+    if (content && content.style.maxHeight) { // Check if it's open by seeing if maxHeight is set
+        content.style.maxHeight = content.scrollHeight + "px";
+    }
+}
+
 
 function renderGallerySection() {
     const container = document.getElementById('gallery-container');
@@ -493,6 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                          appData.media.push(newItem);
                          updateAndSaveChanges();
                          renderGallerySection();
+                         updateOpenAccordionHeight('gallery');
                      };
                      reader.readAsDataURL(file);
                  });
@@ -601,6 +609,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         appData.students = appData.students.filter(s => s.id !== id);
                         updateAndSaveChanges();
                         renderClassListSection();
+                        updateOpenAccordionHeight('classlist');
                     }
                     break;
                  case 'add-column': {
@@ -611,6 +620,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         appData.students.forEach(s => s[newKey] = '');
                         updateAndSaveChanges();
                         renderClassListSection();
+                        updateOpenAccordionHeight('classlist');
                     }
                     break;
                 }
@@ -620,6 +630,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         appData.studentColumns = appData.studentColumns.filter(c => c.key !== key);
                         updateAndSaveChanges();
                         renderClassListSection();
+                        updateOpenAccordionHeight('classlist');
                     }
                     break;
                 }
@@ -630,6 +641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         appData.media = appData.media.filter(m => m.id !== id);
                         updateAndSaveChanges();
                         renderGallerySection();
+                        updateOpenAccordionHeight('gallery');
                     }
                     break;
                 case 'toggle-select-mode':
@@ -659,6 +671,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         isSelectionMode = false;
                         updateAndSaveChanges();
                         renderGallerySection();
+                        updateOpenAccordionHeight('gallery');
                     }
                     break;
             }
@@ -688,6 +701,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 updateAndSaveChanges();
                 renderClassListSection();
+                updateOpenAccordionHeight('classlist');
                 closeModal();
             } else if (form.id === 'media-form') {
                 const url = form.url.value;
@@ -699,6 +713,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (id) { appData.media = appData.media.map(m => m.id === id ? updatedMedia : m); } else { appData.media.push(updatedMedia); }
                 updateAndSaveChanges();
                 renderGallerySection();
+                updateOpenAccordionHeight('gallery');
                 closeModal();
             } else if (form.id === 'change-password-form') {
                 const currentPassword = form.currentPassword.value;

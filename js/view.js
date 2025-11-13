@@ -76,10 +76,10 @@ function renderActiveView() {
     // Only render the active container
     switch (currentView) {
         case 'gallery':
-            containers.gallery.innerHTML = renderGallery(appData.media, false);
+            containers.gallery.innerHTML = renderGallery(appData.media, { isEditing: false });
             break;
         case 'classlist':
-            containers.classlist.innerHTML = renderClassList(appData.students, false);
+            containers.classlist.innerHTML = renderClassList(appData.students, appData.studentColumns, { isEditing: false });
             break;
         case 'schedule':
             containers.schedule.innerHTML = renderSchedule(appData.schedule, false);
