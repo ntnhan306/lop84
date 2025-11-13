@@ -1,14 +1,17 @@
 
+
 import { fetchAppData } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons, openLightbox } from './ui.js';
 
 // --- State Management ---
 let appData = null;
 let currentView = null;
-const POLLING_INTERVAL = 2000; // Fetch new data every 2 seconds
+const POLLING_INTERVAL = 5000; // Increased polling interval to 5 seconds
 let pollTimeoutId = null;
 let isFirstLoad = true;
 let lastConnectionStatus = '';
+let fetchFailures = 0; // Counter for consecutive fetch failures
+const FAILURE_THRESHOLD = 2; // Show disconnected status after 2 consecutive failures
 
 // --- DOM Elements ---
 const navButtons = document.querySelectorAll('.nav-button');
@@ -131,6 +134,7 @@ async function pollForData() {
 
         const newData = await fetchAppData();
         updateConnectionStatus('connected');
+        fetchFailures = 0; // Reset failure count on success
 
         if (JSON.stringify(newData) !== JSON.stringify(appData)) {
             appData = newData;
@@ -144,7 +148,11 @@ async function pollForData() {
         
     } catch (error) {
         console.error("Lỗi khi lấy dữ liệu:", error);
-        updateConnectionStatus('disconnected');
+        fetchFailures++; // Increment failure count
+        if (fetchFailures >= FAILURE_THRESHOLD) {
+            updateConnectionStatus('disconnected');
+        }
+
         if (isFirstLoad) {
             isFirstLoad = false;
             // On first load failure, update the placeholder to show a persistent error.

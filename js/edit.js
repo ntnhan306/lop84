@@ -1,5 +1,5 @@
 // v2.1 - Interactive Overhaul
-import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppDataToKV, fetchPasswordHash, updatePasswordOnKV } from './data.js';
+import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, fetchPasswordHash, updatePasswordOnKV } from './data.js';
 import { hashPassword } from './auth.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
@@ -214,7 +214,7 @@ function renderEditPage() {
     `;
     renderAllSections();
     
-    document.getElementById('sync-kv-btn').addEventListener('click', handleSyncToKV);
+    document.getElementById('sync-kv-btn').addEventListener('click', handleSync);
     document.getElementById('change-password-btn').addEventListener('click', showChangePasswordForm);
     
     updateSyncState({ status: 'synced', message: 'Dữ liệu đã được tải về và sẵn sàng để chỉnh sửa.' });
@@ -289,7 +289,7 @@ async function showEditPage() {
     renderEditPage();
 }
 
-async function handleSyncToKV() {
+async function handleSync() {
     updateSyncState({ status: 'syncing' });
 
     if (!sessionAuthToken) {
@@ -303,7 +303,7 @@ async function handleSyncToKV() {
         return;
     }
     
-    const result = await saveAppDataToKV(dataToSync, sessionAuthToken);
+    const result = await saveAppData(dataToSync, sessionAuthToken);
 
     if (result.success) {
         updateSyncState({ status: 'synced', message: result.message });

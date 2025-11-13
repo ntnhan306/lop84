@@ -27,7 +27,8 @@ const getInitialData = () => {
 };
 
 /**
- * Lấy dữ liệu ứng dụng mới nhất từ Cloudflare Worker (đọc từ KV).
+ * Lấy dữ liệu ứng dụng mới nhất từ Cloudflare Worker.
+ * Worker sẽ tổng hợp dữ liệu từ D1 và KV.
  */
 export async function fetchAppData() {
   try {
@@ -58,12 +59,13 @@ export async function fetchAppData() {
 }
 
 /**
- * Gửi dữ liệu ứng dụng đến Cloudflare Worker để lưu vào KV.
+ * Gửi dữ liệu ứng dụng đến Cloudflare Worker để lưu.
+ * Worker sẽ phân tách dữ liệu và lưu vào D1 và KV tương ứng.
  * @param {object} data - Đối tượng dữ liệu ứng dụng cần lưu.
  * @param {string} authToken - Password hash đã được xác thực để chứng minh quyền ghi.
  * @returns {Promise<{success: boolean, message: string}>}
  */
-export async function saveAppDataToKV(data, authToken) {
+export async function saveAppData(data, authToken) {
      try {
         const response = await fetch(`${API_ENDPOINT_BASE}/data`, {
             method: 'POST',
@@ -80,7 +82,7 @@ export async function saveAppDataToKV(data, authToken) {
         return { success: true, message: result.message };
 
     } catch (error) {
-        console.error('Lỗi khi lưu dữ liệu vào KV:', error);
+        console.error('Lỗi khi lưu dữ liệu:', error);
         return { success: false, message: `Lỗi khi đồng bộ: ${error.message}` };
     }
 }

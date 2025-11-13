@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-
+    "itty-router": "^5.0.22"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
