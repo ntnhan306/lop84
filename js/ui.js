@@ -62,8 +62,9 @@ export function renderGallery(media, { isEditing = false, isSelectionMode = fals
             key="${item.id}"
             data-id="${item.id}" 
             draggable="${isEditing && !isSelectionMode}"
-            class="media-item group relative overflow-hidden rounded-lg shadow-lg aspect-square bg-gray-200 dark:bg-gray-700 cursor-grab active:cursor-grabbing ${isSelectionMode ? 'cursor-pointer' : ''} ${isSelected ? 'ring-4 ring-offset-2 ring-indigo-500' : ''}" 
+            class="media-item group relative overflow-hidden rounded-lg shadow-lg aspect-square bg-gray-200 dark:bg-gray-700 ${isSelectionMode ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'} ${isSelected ? 'ring-4 ring-offset-2 ring-indigo-500' : ''}" 
             ${containerAttributes}
+            ${isSelectionMode ? `data-action="toggle-select-media"` : ''}
         >
             ${mediaElement}
             ${mediaIcon && `<div class="absolute top-3 left-3 p-1.5 bg-black/40 rounded-full">${mediaIcon}</div>`}
@@ -72,7 +73,7 @@ export function renderGallery(media, { isEditing = false, isSelectionMode = fals
             </div>
              ${isEditing ? `
                 ${isSelectionMode ? `
-                    <div class="absolute top-2 left-2 text-white bg-black/30 rounded-full" data-action="toggle-select-media" data-id="${item.id}">
+                    <div class="absolute top-2 left-2 text-white bg-black/30 rounded-full pointer-events-none">
                         ${isSelected ? icons.checkboxChecked : icons.checkbox}
                     </div>` 
                 : `

@@ -1,4 +1,3 @@
-
 // v2.1 - Interactive Overhaul
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppDataToKV, fetchPasswordHash, updatePasswordOnKV } from './data.js';
 import { hashPassword } from './auth.js';
@@ -251,6 +250,15 @@ function renderGallerySection() {
             ${isSelectionMode ? icons.check : icons.checkbox}<span>${isSelectionMode ? 'Hoàn tất chọn' : 'Chọn mục'}</span>
         </button>
     `;
+
+    if (isSelectionMode) {
+        const allSelected = appData.media.length > 0 && selectedMediaIds.size === appData.media.length;
+        actionsHTML += `
+            <button data-action="${allSelected ? 'deselect-all-media' : 'select-all-media'}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600">
+                ${icons.checkboxChecked}<span>${allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}</span>
+            </button>
+        `;
+    }
 
     if (isSelectionMode && selectedMediaIds.size > 0) {
         actionsHTML += `
@@ -529,6 +537,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         editContainer.addEventListener('dragover', (e) => {
             e.preventDefault();
+            if (!draggedElement) return;
+
+            const SCROLL_ZONE_SIZE = 80; // 80px from top or bottom
+            const SCROLL_SPEED = 10; // pixels per event
+
+            const clientY = e.clientY;
+            const viewportHeight = window.innerHeight;
+
+            if (clientY < SCROLL_ZONE_SIZE) {
+                window.scrollBy(0, -SCROLL_SPEED);
+            } else if (clientY > viewportHeight - SCROLL_ZONE_SIZE) {
+                window.scrollBy(0, SCROLL_SPEED);
+            }
         });
 
         editContainer.addEventListener('drop', (e) => {
@@ -652,19 +673,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     renderGallerySection();
                     break;
-                case 'toggle-select-media': {
-                     const mediaItem = e.target.closest('.media-item');
-                     const mediaId = mediaItem?.dataset.id;
-                     if (mediaId) {
-                         if (selectedMediaIds.has(mediaId)) {
-                             selectedMediaIds.delete(mediaId);
+                case 'toggle-select-media':
+                     if (id) {
+                         if (selectedMediaIds.has(id)) {
+                             selectedMediaIds.delete(id);
                          } else {
-                             selectedMediaIds.add(mediaId);
+                             selectedMediaIds.add(id);
                          }
                          renderGallerySection();
                      }
                      break;
-                 }
+                 case 'select-all-media':
+                    appData.media.forEach(item => selectedMediaIds.add(item.id));
+                    renderGallerySection();
+                    break;
+                case 'deselect-all-media':
+                    selectedMediaIds.clear();
+                    renderGallerySection();
+                    break;
                  case 'delete-selected-media':
                     if (confirm(`Bạn có chắc muốn xóa ${selectedMediaIds.size} mục đã chọn?`)) {
                         appData.media = appData.media.filter(m => !selectedMediaIds.has(m.id));
