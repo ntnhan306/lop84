@@ -14,6 +14,13 @@ const getInitialData = () => {
     }, {});
     return {
         students: [],
+        studentColumns: [
+            { key: 'name', label: 'Họ và Tên', readonly: true },
+            { key: 'studentId', label: 'Mã học sinh' },
+            { key: 'dob', label: 'Ngày sinh' },
+            { key: 'phone', label: 'Số điện thoại' },
+            { key: 'notes', label: 'Ghi chú' },
+        ],
         schedule: initialSchedule,
         media: [],
     };
@@ -38,6 +45,10 @@ export async function fetchAppData() {
     if (!data.students || !data.schedule || !data.media) {
         console.warn('Dữ liệu từ Worker thiếu các trường cần thiết. Trả về cấu trúc mặc định.');
         return getInitialData();
+    }
+     // Ensure backward compatibility for the new studentColumns feature
+    if (!data.studentColumns || !Array.isArray(data.studentColumns)) {
+        data.studentColumns = getInitialData().studentColumns;
     }
     return data;
   } catch (error) {

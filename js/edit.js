@@ -1,10 +1,14 @@
-// v2.0 - UI Overhaul
+// v2.1 - Interactive Overhaul
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppDataToKV, fetchPasswordHash, updatePasswordOnKV } from './data.js';
 import { hashPassword } from './auth.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
 let appData = null;
 let sessionAuthToken = null; // Stores the password hash after successful login
+
+// Module-scoped state
+let isSelectionMode = false;
+let selectedMediaIds = new Set();
 
 // Module-scoped DOM elements
 let authContainer;
@@ -122,7 +126,7 @@ function renderEditPage() {
                 <header class="flex flex-wrap justify-between items-center gap-4 mb-8 pb-4 border-b-2 border-teal-500">
                     <div>
                         <h1 class="text-4xl font-bold text-teal-600 dark:text-teal-400">Chỉnh sửa Lớp 8/4</h1>
-                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Giao diện quản trị v2.0</p>
+                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Giao diện quản trị v2.1</p>
                     </div>
                     <div class="flex items-center flex-wrap gap-2">
                         <button id="change-password-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 transition-colors">
@@ -144,41 +148,121 @@ function renderEditPage() {
                             <button id="sync-kv-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-all"></button>
                         </div>
                     </section>
-                    <section class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6">
-                        <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-                           <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Thư viện</h2>
-                           <button data-action="add-media" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600">${icons.plus}<span>Thêm Media</span></button>
+                    
+                    <!-- Accordion container -->
+                    <div id="accordion-container" class="space-y-2">
+                        <!-- Gallery Section -->
+                        <div class="accordion-item bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden">
+                            <button data-accordion="gallery" class="accordion-header w-full flex justify-between items-center p-6 text-left">
+                                <div class="flex items-center gap-4">
+                                    <span class="text-teal-500">${icons.gallery}</span>
+                                    <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Thư viện</h2>
+                                </div>
+                                <span class="text-gray-500">${icons.chevronDown}</span>
+                            </button>
+                            <div id="gallery-accordion-content" class="accordion-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
+                                <div class="p-6 border-t dark:border-gray-700 space-y-4">
+                                    <div id="gallery-actions" class="flex flex-wrap items-center gap-4"></div>
+                                    <div id="gallery-container"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div id="gallery-container"></div>
-                    </section>
-                    <section class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6">
-                         <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-                           <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Danh sách Lớp</h2>
-                           <button data-action="add-student" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600">${icons.plus}<span>Thêm Học sinh</span></button>
+
+                        <!-- Class List Section -->
+                        <div class="accordion-item bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden">
+                             <button data-accordion="classlist" class="accordion-header w-full flex justify-between items-center p-6 text-left">
+                                <div class="flex items-center gap-4">
+                                    <span class="text-teal-500">${icons.users}</span>
+                                    <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Danh sách Lớp</h2>
+                                </div>
+                                <span class="text-gray-500">${icons.chevronDown}</span>
+                            </button>
+                            <div id="classlist-accordion-content" class="accordion-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
+                                 <div class="p-6 border-t dark:border-gray-700 space-y-4">
+                                    <div class="flex flex-wrap justify-end items-center gap-4">
+                                       <button data-action="add-column" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600">${icons.plus}<span>Thêm Cột</span></button>
+                                       <button data-action="add-student" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600">${icons.plus}<span>Thêm Học sinh</span></button>
+                                    </div>
+                                    <div id="classlist-container"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div id="classlist-container"></div>
-                    </section>
-                    <section class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6">
-                        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Quản lý Thời khóa biểu</h2>
-                        <div id="schedule-container"></div>
-                    </section>
+
+                        <!-- Schedule Section -->
+                         <div class="accordion-item bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden">
+                             <button data-accordion="schedule" class="accordion-header w-full flex justify-between items-center p-6 text-left">
+                                <div class="flex items-center gap-4">
+                                     <span class="text-teal-500">${icons.calendar}</span>
+                                    <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Thời khóa biểu</h2>
+                                </div>
+                                <span class="text-gray-500">${icons.chevronDown}</span>
+                            </button>
+                            <div id="schedule-accordion-content" class="accordion-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
+                                 <div class="p-6 border-t dark:border-gray-700">
+                                    <div id="schedule-container"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </main>
                 <footer class="text-center mt-12 text-gray-500 dark:text-gray-400">
                     <p>&copy; ${new Date().getFullYear()} Lớp 8/4. Chế độ chỉnh sửa.</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v2.0</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v2.1</p>
                 </footer>
             </div>
         </div>
     `;
-    document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
-    document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
-    document.getElementById('schedule-container').innerHTML = renderSchedule(appData.schedule, true);
+    renderAllSections();
     
     document.getElementById('sync-kv-btn').addEventListener('click', handleSyncToKV);
     document.getElementById('change-password-btn').addEventListener('click', showChangePasswordForm);
     
     updateSyncState({ status: 'synced', message: 'Dữ liệu đã được tải về và sẵn sàng để chỉnh sửa.' });
 }
+
+
+function renderAllSections() {
+    renderGallerySection();
+    renderClassListSection();
+    document.getElementById('schedule-container').innerHTML = renderSchedule(appData.schedule, true);
+}
+
+
+function renderGallerySection() {
+    const container = document.getElementById('gallery-container');
+    const actionsContainer = document.getElementById('gallery-actions');
+    
+    // Render Actions
+    let actionsHTML = `
+        <label class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 cursor-pointer">
+            ${icons.plus}<span>Tải lên Tệp</span>
+            <input type="file" multiple class="hidden" data-action="upload-multi-media" accept="image/*,video/*,audio/*">
+        </label>
+        <button data-action="add-media-url" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-semibold rounded-lg shadow-md hover:bg-gray-300 dark:hover:bg-gray-600">${icons.plus}<span>Thêm từ URL</span></button>
+        <button data-action="toggle-select-mode" class="inline-flex items-center gap-2 px-4 py-2 ${isSelectionMode ? 'bg-indigo-600' : 'bg-blue-500'} text-white font-semibold rounded-lg shadow-md hover:bg-blue-600">
+            ${isSelectionMode ? icons.check : icons.checkbox}<span>${isSelectionMode ? 'Hoàn tất chọn' : 'Chọn mục'}</span>
+        </button>
+    `;
+
+    if (isSelectionMode && selectedMediaIds.size > 0) {
+        actionsHTML += `
+            <div class="flex items-center gap-4 ml-auto">
+                <span class="font-medium text-gray-700 dark:text-gray-300">Đã chọn: ${selectedMediaIds.size}</span>
+                <button data-action="delete-selected-media" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700">${icons.trash}<span>Xóa mục đã chọn</span></button>
+            </div>
+        `;
+    }
+    actionsContainer.innerHTML = actionsHTML;
+
+    // Render Gallery Grid
+    container.innerHTML = renderGallery(appData.media, { isEditing: true, isSelectionMode, selectedIds: selectedMediaIds });
+}
+
+function renderClassListSection() {
+    const container = document.getElementById('classlist-container');
+    container.innerHTML = renderClassList(appData.students, appData.studentColumns, { isEditing: true });
+}
+
 
 async function showEditPage() {
     authContainer.innerHTML = `<div class="flex items-center justify-center h-screen">Đang tải dữ liệu mới nhất...</div>`;
@@ -256,13 +340,23 @@ function showStudentForm(studentId = null) {
     const student = isEditing ? appData.students.find(s => s.id === studentId) : {};
     const title = isEditing ? 'Sửa thông tin học sinh' : 'Thêm học sinh mới';
 
+    const fieldsHTML = appData.studentColumns.map(col => `
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">${col.label}</label>
+            <input 
+                type="${col.key === 'dob' ? 'date' : col.key === 'phone' ? 'tel' : 'text'}" 
+                name="${col.key}" 
+                value="${student[col.key] || ''}" 
+                placeholder="${col.label}"
+                ${col.key === 'name' ? 'required' : ''}
+                class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+        </div>
+    `).join('');
+
     const formHTML = `
         <form id="student-form" data-id="${studentId || ''}" class="space-y-4">
-            <input type="text" name="name" value="${student.name || ''}" placeholder="Họ và Tên" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"/>
-            <input type="text" name="studentId" value="${student.studentId || ''}" placeholder="Mã học sinh" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"/>
-            <input type="date" name="dob" value="${student.dob || ''}" placeholder="Ngày sinh" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"/>
-            <input type="tel" name="phone" value="${student.phone || ''}" placeholder="Số điện thoại" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"/>
-            <textarea name="notes" placeholder="Ghi chú (nếu có)" class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 h-24">${student.notes || ''}</textarea>
+            ${fieldsHTML}
             <div class="flex justify-end space-x-3 pt-4">
                 <button type="button" id="form-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button>
                 <button type="submit" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu</button>
@@ -275,9 +369,7 @@ function showStudentForm(studentId = null) {
 function showMediaForm(mediaId = null) {
     const isEditing = mediaId !== null;
     const item = isEditing ? appData.media.find(m => m.id === mediaId) : { type: 'image', url: '' };
-    const title = isEditing ? 'Sửa Media' : 'Thêm Media mới';
-    const FILE_SIZE_LIMIT_MB = 10;
-    const FILE_SIZE_LIMIT_BYTES = FILE_SIZE_LIMIT_MB * 1024 * 1024;
+    const title = isEditing ? 'Chỉnh sửa Media' : 'Thêm Media từ URL';
 
     const formHTML = `
         <form id="media-form" data-id="${mediaId || ''}" class="space-y-6">
@@ -295,23 +387,9 @@ function showMediaForm(mediaId = null) {
                 <span class="text-gray-500 dark:text-gray-400">Xem trước</span>
             </div>
             
-            <!-- Input sections -->
             <div id="url-input-section">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dán Link (URL)</label>
-                <input type="url" name="url-input" value="${item.url && item.url.startsWith('http') ? item.url : ''}" class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://..."/>
-            </div>
-
-            <div id="file-input-section">
-                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hoặc tải tệp lên</label>
-                 <input type="file" name="file-input" class="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"/>
-                 <p class="text-xs text-yellow-600 dark:text-yellow-400 mt-1" id="file-warning">Cảnh báo: Tải lên video/âm thanh chỉ nên dùng cho các tệp rất ngắn (dưới ${FILE_SIZE_LIMIT_MB}MB).</p>
-            </div>
-            
-            <div id="paste-input-section">
-                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Hoặc dán ảnh từ clipboard</label>
-                 <div id="paste-area" class="w-full h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400">
-                    Nhấn Ctrl+V hoặc dán vào đây
-                 </div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Link (URL)</label>
+                <input type="url" name="url-input" value="${item.url || ''}" class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://..." required/>
             </div>
 
             <div>
@@ -329,11 +407,6 @@ function showMediaForm(mediaId = null) {
     const form = document.getElementById('media-form');
     const typeSelect = form.querySelector('[name="type"]');
     const urlInput = form.querySelector('[name="url-input"]');
-    const fileInput = form.querySelector('[name="file-input"]');
-    const pasteSection = document.getElementById('paste-input-section');
-    const fileSection = document.getElementById('file-input-section');
-    const fileWarning = document.getElementById('file-warning');
-    const pasteArea = document.getElementById('paste-area');
     const hiddenUrl = form.querySelector('[name="url"]');
     const previewWrapper = document.getElementById('media-preview-wrapper');
 
@@ -353,44 +426,11 @@ function showMediaForm(mediaId = null) {
         previewWrapper.innerHTML = previewElement;
         hiddenUrl.value = src;
     };
-
-    const updateFormUI = () => {
-        const type = typeSelect.value;
-        pasteSection.classList.toggle('hidden', type !== 'image');
-        fileWarning.classList.toggle('hidden', type === 'image');
-        if (item.url) updatePreview(item.type, item.url);
-    };
-
-    const handleFile = (file) => {
-        if (!file) return;
-        if (file.size > FILE_SIZE_LIMIT_BYTES) {
-            alert(`Tệp quá lớn (tối đa ${FILE_SIZE_LIMIT_MB}MB). Vui lòng chọn tệp nhỏ hơn.`);
-            fileInput.value = '';
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            updatePreview(typeSelect.value, e.target.result);
-            urlInput.value = '';
-        };
-        reader.readAsDataURL(file);
-    };
     
-    typeSelect.addEventListener('change', updateFormUI);
-    urlInput.addEventListener('input', () => {
-        updatePreview(typeSelect.value, urlInput.value);
-        fileInput.value = '';
-    });
-    fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
-    pasteArea.addEventListener('paste', (e) => {
-        e.preventDefault();
-        const item = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'));
-        if (item) {
-            handleFile(item.getAsFile());
-        }
-    });
-
-    updateFormUI();
+    if (item.url) updatePreview(item.type, item.url);
+    
+    typeSelect.addEventListener('change', () => updatePreview(typeSelect.value, urlInput.value));
+    urlInput.addEventListener('input', () => updatePreview(typeSelect.value, urlInput.value));
 }
 
 function showChangePasswordForm() {
@@ -420,6 +460,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!authContainer || !editContainer || !modalContainer) {
             throw new Error("Không thể khởi tạo giao diện. Một hoặc nhiều vùng chứa chính (container) không được tìm thấy trong DOM.");
         }
+        
+        let draggedElement = null; // For drag-and-drop
 
         editContainer.addEventListener('input', (e) => {
             const target = e.target;
@@ -430,28 +472,193 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-        editContainer.addEventListener('click', (e) => {
-            const action = e.target.closest('[data-action]')?.dataset.action;
-            if (!action) return;
-            const id = e.target.closest('[data-id]')?.dataset.id;
+        editContainer.addEventListener('change', (e) => {
+             const target = e.target;
+             const action = target.dataset.action;
+             if (action === 'upload-multi-media') {
+                 const files = target.files;
+                 if (!files.length) return;
+                 const FILE_SIZE_LIMIT_MB = 10;
+                 const FILE_SIZE_LIMIT_BYTES = FILE_SIZE_LIMIT_MB * 1024 * 1024;
 
+                 Array.from(files).forEach(file => {
+                     if (file.size > FILE_SIZE_LIMIT_BYTES) {
+                         alert(`Tệp "${file.name}" quá lớn (tối đa ${FILE_SIZE_LIMIT_MB}MB) và sẽ bị bỏ qua.`);
+                         return;
+                     }
+                     const reader = new FileReader();
+                     reader.onload = (e) => {
+                         const type = file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : 'audio';
+                         const newItem = { id: crypto.randomUUID(), type, url: e.target.result, caption: file.name };
+                         appData.media.push(newItem);
+                         updateAndSaveChanges();
+                         renderGallerySection();
+                     };
+                     reader.readAsDataURL(file);
+                 });
+                 target.value = ''; // Reset file input
+             }
+        });
+        
+        editContainer.addEventListener('dragstart', (e) => {
+            draggedElement = e.target;
+            if (draggedElement.matches('.media-item') || draggedElement.matches('.student-row')) {
+                setTimeout(() => {
+                    draggedElement.classList.add('opacity-50');
+                }, 0);
+            } else {
+                draggedElement = null;
+            }
+        });
+        
+        editContainer.addEventListener('dragend', (e) => {
+             if (draggedElement) {
+                draggedElement.classList.remove('opacity-50');
+                draggedElement = null;
+             }
+        });
+        
+        editContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        editContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (!draggedElement) return;
+
+            if (draggedElement.matches('.media-item')) {
+                const targetElement = e.target.closest('.media-item');
+                if (targetElement && targetElement !== draggedElement) {
+                    const sourceId = draggedElement.dataset.id;
+                    const targetId = targetElement.dataset.id;
+                    const sourceIndex = appData.media.findIndex(item => item.id === sourceId);
+                    const targetIndex = appData.media.findIndex(item => item.id === targetId);
+
+                    if (sourceIndex > -1 && targetIndex > -1) {
+                        const [movedItem] = appData.media.splice(sourceIndex, 1);
+                        appData.media.splice(targetIndex, 0, movedItem);
+                        updateAndSaveChanges();
+                        renderGallerySection();
+                    }
+                }
+            } else if (draggedElement.matches('.student-row')) {
+                const targetElement = e.target.closest('.student-row');
+                if (targetElement && targetElement !== draggedElement) {
+                    const sourceId = draggedElement.dataset.id;
+                    const targetId = targetElement.dataset.id;
+                    const sourceIndex = appData.students.findIndex(s => s.id === sourceId);
+                    const targetIndex = appData.students.findIndex(s => s.id === targetId);
+                    if (sourceIndex > -1 && targetIndex > -1) {
+                         const [movedItem] = appData.students.splice(sourceIndex, 1);
+                        appData.students.splice(targetIndex, 0, movedItem);
+                        updateAndSaveChanges();
+                        renderClassListSection();
+                    }
+                }
+            }
+            if (draggedElement) {
+                draggedElement.classList.remove('opacity-50');
+                draggedElement = null;
+            }
+        });
+
+
+        editContainer.addEventListener('click', (e) => {
+            const button = e.target.closest('button, [data-action]');
+            if (!button) return;
+            
+            const action = button.dataset.action || (button.closest('[data-accordion]') ? 'accordion-toggle' : null);
+            if (!action) return;
+            
+            const id = button.dataset.id || e.target.closest('[data-id]')?.dataset.id;
+            
             switch (action) {
+                case 'accordion-toggle': {
+                    const accordionName = button.dataset.accordion;
+                    const content = document.getElementById(`${accordionName}-accordion-content`);
+                    const icon = button.querySelector('svg:last-child');
+                    
+                    document.querySelectorAll('.accordion-content').forEach(el => {
+                        if (el !== content) {
+                            el.style.maxHeight = null;
+                            el.closest('.accordion-item').querySelector('.accordion-header svg:last-child').classList.remove('rotate-180');
+                        }
+                    });
+
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        icon.classList.remove('rotate-180');
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        icon.classList.add('rotate-180');
+                    }
+                    break;
+                }
                 case 'add-student': showStudentForm(); break;
                 case 'edit-student': showStudentForm(id); break;
                 case 'delete-student':
                     if (confirm('Bạn có chắc muốn xóa học sinh này?')) {
                         appData.students = appData.students.filter(s => s.id !== id);
                         updateAndSaveChanges();
-                        document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
+                        renderClassListSection();
                     }
                     break;
-                case 'add-media': showMediaForm(); break;
+                 case 'add-column': {
+                    const newName = prompt('Nhập tên cho cột mới:', 'Cột Mới');
+                    if (newName) {
+                        const newKey = `custom_${Date.now()}`;
+                        appData.studentColumns.push({ key: newKey, label: newName });
+                        appData.students.forEach(s => s[newKey] = '');
+                        updateAndSaveChanges();
+                        renderClassListSection();
+                    }
+                    break;
+                }
+                case 'delete-column': {
+                     if (confirm('Bạn có chắc muốn xóa cột này? Dữ liệu trong cột sẽ được giữ lại nhưng không hiển thị.')) {
+                        const key = button.dataset.key;
+                        appData.studentColumns = appData.studentColumns.filter(c => c.key !== key);
+                        updateAndSaveChanges();
+                        renderClassListSection();
+                    }
+                    break;
+                }
+                case 'add-media-url': showMediaForm(); break;
                 case 'edit-media': showMediaForm(id); break;
                 case 'delete-media':
                     if (confirm('Bạn có chắc muốn xóa mục này?')) {
                         appData.media = appData.media.filter(m => m.id !== id);
                         updateAndSaveChanges();
-                        document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
+                        renderGallerySection();
+                    }
+                    break;
+                case 'toggle-select-mode':
+                    isSelectionMode = !isSelectionMode;
+                    if (!isSelectionMode) {
+                        selectedMediaIds.clear();
+                    }
+                    renderGallerySection();
+                    break;
+                case 'toggle-select-media': {
+                     const mediaItem = e.target.closest('.media-item');
+                     const mediaId = mediaItem?.dataset.id;
+                     if (mediaId) {
+                         if (selectedMediaIds.has(mediaId)) {
+                             selectedMediaIds.delete(mediaId);
+                         } else {
+                             selectedMediaIds.add(mediaId);
+                         }
+                         renderGallerySection();
+                     }
+                     break;
+                 }
+                 case 'delete-selected-media':
+                    if (confirm(`Bạn có chắc muốn xóa ${selectedMediaIds.size} mục đã chọn?`)) {
+                        appData.media = appData.media.filter(m => !selectedMediaIds.has(m.id));
+                        selectedMediaIds.clear();
+                        isSelectionMode = false;
+                        updateAndSaveChanges();
+                        renderGallerySection();
                     }
                     break;
             }
@@ -469,21 +676,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             const id = form.dataset.id;
 
             if (form.id === 'student-form') {
-                const updatedStudent = { id: id || crypto.randomUUID(), name: form.name.value, studentId: form.studentId.value, dob: form.dob.value, phone: form.phone.value, notes: form.notes.value };
-                if (id) { appData.students = appData.students.map(s => s.id === id ? updatedStudent : s); } else { appData.students.push(updatedStudent); }
+                 const studentData = id ? appData.students.find(s => s.id === id) : { id: crypto.randomUUID() };
+                 appData.studentColumns.forEach(col => {
+                     studentData[col.key] = form[col.key].value;
+                 });
+
+                if (id) {
+                    appData.students = appData.students.map(s => s.id === id ? studentData : s);
+                } else {
+                    appData.students.push(studentData);
+                }
                 updateAndSaveChanges();
-                document.getElementById('classlist-container').innerHTML = renderClassList(appData.students, true);
+                renderClassListSection();
                 closeModal();
             } else if (form.id === 'media-form') {
                 const url = form.url.value;
                 if (!url) {
-                    alert('Nguồn media không được để trống. Vui lòng dán link, tải tệp hoặc dán ảnh.');
+                    alert('Nguồn media không được để trống. Vui lòng dán link.');
                     return;
                 }
                 const updatedMedia = { id: id || crypto.randomUUID(), type: form.type.value, url: url, caption: form.caption.value };
                 if (id) { appData.media = appData.media.map(m => m.id === id ? updatedMedia : m); } else { appData.media.push(updatedMedia); }
                 updateAndSaveChanges();
-                document.getElementById('gallery-container').innerHTML = renderGallery(appData.media, true);
+                renderGallerySection();
                 closeModal();
             } else if (form.id === 'change-password-form') {
                 const currentPassword = form.currentPassword.value;

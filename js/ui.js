@@ -1,7 +1,7 @@
 export const icons = {
     pencil: `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>`,
-    trash: `<svg xmlns="http://www.w.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`,
-    plus: `<svg xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>`,
+    trash: `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`,
+    plus: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>`,
     gallery: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>`,
     users: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M5.5 13.5A3.5 3.5 0 019 10h.001c0 .98.39 1.85.98 2.5H9a4.5 4.5 0 01-4.5-4.5V7.5A3.5 3.5 0 019 4h6.001c0 .98.39 1.85.98 2.5H15A4.5 4.5 0 0110.5 11v2.5a3.5 3.5 0 01-5 0z" /></svg>`,
     calendar: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>`,
@@ -13,6 +13,10 @@ export const icons = {
     key: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>`,
     video: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 001.553.832l3-2a1 1 0 000-1.664l-3-2z" /></svg>`,
     audio: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>`,
+    chevronDown: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 transition-transform"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>`,
+    dragHandle: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" /></svg>`,
+    checkbox: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" fill="none"/></svg>`,
+    checkboxChecked: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75" /><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/></svg>`,
 };
 
 function renderEmptyState(icon, title, description) {
@@ -27,9 +31,9 @@ function renderEmptyState(icon, title, description) {
     `;
 }
 
-export function renderGallery(media, isEditing = false) {
+export function renderGallery(media, { isEditing = false, isSelectionMode = false, selectedIds = new Set() } = {}) {
     if (media.length === 0) {
-        return renderEmptyState(icons.gallery, "Thư viện trống", "Hiện chưa có ảnh, video hoặc âm thanh nào. Hãy thêm mới ở trang chỉnh sửa.");
+        return `<div class="p-4">${renderEmptyState(icons.gallery, "Thư viện trống", "Hiện chưa có ảnh, video hoặc âm thanh nào. Hãy tải lên media mới.")}</div>`;
     }
     const items = media.map(item => {
         let mediaElement;
@@ -50,24 +54,38 @@ export function renderGallery(media, isEditing = false) {
                 containerAttributes = `data-lightbox-item="true" data-src="${item.url}"`;
                 break;
         }
+        
+        const isSelected = selectedIds.has(item.id);
 
         return `
-        <div key="${item.id}" class="group relative overflow-hidden rounded-lg shadow-lg aspect-square bg-gray-200 dark:bg-gray-700" ${containerAttributes}>
+        <div 
+            key="${item.id}"
+            data-id="${item.id}" 
+            draggable="${isEditing && !isSelectionMode}"
+            class="media-item group relative overflow-hidden rounded-lg shadow-lg aspect-square bg-gray-200 dark:bg-gray-700 cursor-grab active:cursor-grabbing ${isSelectionMode ? 'cursor-pointer' : ''} ${isSelected ? 'ring-4 ring-offset-2 ring-indigo-500' : ''}" 
+            ${containerAttributes}
+        >
             ${mediaElement}
             ${mediaIcon && `<div class="absolute top-3 left-3 p-1.5 bg-black/40 rounded-full">${mediaIcon}</div>`}
             <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
                 <p class="text-white text-sm font-semibold transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">${item.caption || ''}</p>
             </div>
              ${isEditing ? `
+                ${isSelectionMode ? `
+                    <div class="absolute top-2 left-2 text-white bg-black/30 rounded-full" data-action="toggle-select-media" data-id="${item.id}">
+                        ${isSelected ? icons.checkboxChecked : icons.checkbox}
+                    </div>` 
+                : `
                 <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <button data-action="edit-media" data-id="${item.id}" class="p-2 bg-blue-500 rounded-full text-white hover:bg-blue-600 transition-transform hover:scale-110">${icons.pencil}</button>
                     <button data-action="delete-media" data-id="${item.id}" class="p-2 bg-red-500 rounded-full text-white hover:bg-red-600 transition-transform hover:scale-110">${icons.trash}</button>
                 </div>
+                `}
             ` : ''}
         </div>
     `}).join('');
 
-    return `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">${items}</div>`;
+    return `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">${items}</div>`;
 }
 
 export function openLightbox(src) {
@@ -181,30 +199,43 @@ export function openLightbox(src) {
 }
 
 
-export function renderClassList(students, isEditing = false) {
+export function renderClassList(students, columns, { isEditing = false } = {}) {
     if (students.length === 0 && !isEditing) {
          return renderEmptyState(icons.users, "Danh sách lớp trống", "Hiện chưa có thông tin học sinh nào được thêm vào.");
     }
-    const headers = ['STT', 'Họ và Tên', 'Mã học sinh', 'Ngày sinh', 'Số điện thoại', 'Ghi chú'];
-    if (isEditing) headers.push('Hành động');
 
-    const headerHtml = headers.map(h => `<th scope="col" class="px-6 py-3">${h}</th>`).join('');
-    
+    const headerHtml = `
+        <th scope="col" class="px-2 py-3 w-12">STT</th>
+        ${isEditing ? `<th class="w-10"></th>` : ''}
+        ${columns.map(col => `
+            <th scope="col" class="px-6 py-3 group">
+                <div class="flex items-center justify-between gap-2">
+                    <span>${col.label}</span>
+                    ${isEditing && !col.readonly ? `
+                        <button data-action="delete-column" data-key="${col.key}" class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700">&times;</button>
+                    ` : ''}
+                </div>
+            </th>
+        `).join('')}
+        ${isEditing ? `<th scope="col" class="px-6 py-3 text-right">Hành động</th>` : ''}
+    `;
+
     let bodyHtml;
     if (students.length === 0) {
-        bodyHtml = `<tr><td colspan="${headers.length}" class="text-center py-8">Chưa có thông tin học sinh. Nhấn "Thêm Học sinh" để bắt đầu.</td></tr>`;
+        bodyHtml = `<tr><td colspan="${columns.length + (isEditing ? 3 : 1)}" class="text-center py-8">Chưa có thông tin học sinh. Nhấn "Thêm Học sinh" để bắt đầu.</td></tr>`;
     } else {
         bodyHtml = students.map((student, index) => `
-            <tr class="bg-white dark:bg-gray-800 even:bg-gray-50 dark:even:bg-gray-800/50 border-b dark:border-gray-700">
-                <td class="px-6 py-4 font-medium text-gray-500 dark:text-gray-400">${index + 1}</td>
-                <td class="px-6 py-4 font-semibold text-gray-900 dark:text-white">${student.name}</td>
-                <td class="px-6 py-4">${student.studentId}</td>
-                <td class="px-6 py-4">${student.dob}</td>
-                <td class="px-6 py-4">${student.phone}</td>
-                <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${student.notes || ''}</td>
+            <tr class="student-row bg-white dark:bg-gray-800 even:bg-gray-50 dark:even:bg-gray-800/50 border-b dark:border-gray-700" data-id="${student.id}" draggable="${isEditing}">
+                <td class="px-2 py-4 text-center font-medium text-gray-500 dark:text-gray-400">${index + 1}</td>
+                ${isEditing ? `<td class="text-center cursor-grab active:cursor-grabbing text-gray-400" title="Kéo để sắp xếp">${icons.dragHandle}</td>` : ''}
+                ${columns.map(col => `
+                    <td class="px-6 py-4 ${col.key === 'name' ? 'font-semibold text-gray-900 dark:text-white' : ''}">
+                        ${student[col.key] || ''}
+                    </td>
+                `).join('')}
                 ${isEditing ? `
                     <td class="px-6 py-4">
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center justify-end gap-4">
                             <button data-action="edit-student" data-id="${student.id}" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Sửa</button>
                             <button data-action="delete-student" data-id="${student.id}" class="font-medium text-red-600 dark:text-red-500 hover:underline">Xóa</button>
                         </div>
@@ -220,7 +251,7 @@ export function renderClassList(students, isEditing = false) {
                 <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
                     <tr>${headerHtml}</tr>
                 </thead>
-                <tbody>${bodyHtml}</tbody>
+                <tbody class="student-list-tbody">${bodyHtml}</tbody>
             </table>
         </div>`;
 }
