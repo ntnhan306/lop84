@@ -17,11 +17,12 @@ export const icons = {
     dragHandle: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" /></svg>`,
     checkbox: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" fill="none"/></svg>`,
     checkboxChecked: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75" /><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/></svg>`,
+    spreadsheet: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 1.5v3m6-3v3m-6 5.25v3.75m6-3.75v3.75M3 13.5h18M3 5.25h18a2.25 2.25 0 012.25 2.25v12a2.25 2.25 0 01-2.25 2.25H3a2.25 2.25 0 01-2.25-2.25V7.5A2.25 2.25 0 013 5.25z" /></svg>`,
 };
 
 function renderEmptyState(icon, title, description) {
     return `
-        <div class="text-center py-16 px-6 bg-white dark:bg-gray-900 rounded-xl shadow-lg">
+        <div class="text-center py-16 px-6">
             <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
                 ${icon}
             </div>
@@ -32,61 +33,68 @@ function renderEmptyState(icon, title, description) {
 }
 
 export function renderGallery(media, { isEditing = false, isSelectionMode = false, selectedIds = new Set() } = {}) {
+    let content;
     if (media.length === 0) {
-        return `<div class="p-4">${renderEmptyState(icons.gallery, "Thư viện trống", "Hiện chưa có ảnh, video hoặc âm thanh nào. Hãy tải lên media mới.")}</div>`;
-    }
-    const items = media.map(item => {
-        let mediaElement;
-        let mediaIcon = '';
-        let containerAttributes = '';
+        content = renderEmptyState(icons.gallery, "Thư viện trống", isEditing ? "Hãy tải lên media mới." : "Hiện chưa có ảnh, video hoặc âm thanh nào.");
+    } else {
+        const items = media.map(item => {
+            let mediaElement;
+            let mediaIcon = '';
+            let containerAttributes = '';
 
-        switch (item.type) {
-            case 'video':
-                mediaElement = `<video src="${item.url}" class="w-full h-full object-cover" preload="metadata"></video>`;
-                mediaIcon = icons.video;
-                break;
-            case 'audio':
-                mediaElement = `<audio src="${item.url}" class="w-full h-full object-cover hidden" preload="metadata"></audio><div class="w-full h-full bg-gray-800 flex items-center justify-center">${icons.audio.replace('h-6 w-6', 'h-16 w-16')}</div>`;
-                mediaIcon = icons.audio;
-                break;
-            default: // image
-                mediaElement = `<img src="${item.url}" alt="${item.caption || 'Gallery image'}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 cursor-pointer" />`;
-                containerAttributes = `data-lightbox-item="true" data-src="${item.url}"`;
-                break;
-        }
-        
-        const isSelected = selectedIds.has(item.id);
-
-        return `
-        <div 
-            key="${item.id}"
-            data-id="${item.id}" 
-            draggable="${isEditing && !isSelectionMode}"
-            class="media-item group relative overflow-hidden rounded-lg shadow-lg aspect-square bg-gray-200 dark:bg-gray-700 ${isSelectionMode ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'} ${isSelected ? 'ring-4 ring-offset-2 ring-indigo-500' : ''}" 
-            ${containerAttributes}
-            ${isSelectionMode ? `data-action="toggle-select-media"` : ''}
-        >
-            ${mediaElement}
-            ${mediaIcon && `<div class="absolute top-3 left-3 p-1.5 bg-black/40 rounded-full">${mediaIcon}</div>`}
-            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                <p class="text-white text-sm font-semibold transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">${item.caption || ''}</p>
-            </div>
-             ${isEditing ? `
-                ${isSelectionMode ? `
-                    <div class="absolute top-2 left-2 text-white bg-black/30 rounded-full pointer-events-none">
-                        ${isSelected ? icons.checkboxChecked : icons.checkbox}
-                    </div>` 
-                : `
-                <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <button data-action="edit-media" data-id="${item.id}" class="p-2 bg-blue-500 rounded-full text-white hover:bg-blue-600 transition-transform hover:scale-110">${icons.pencil}</button>
-                    <button data-action="delete-media" data-id="${item.id}" class="p-2 bg-red-500 rounded-full text-white hover:bg-red-600 transition-transform hover:scale-110">${icons.trash}</button>
+            switch (item.type) {
+                case 'video':
+                    mediaElement = `<video src="${item.url}" class="w-full h-full object-cover" preload="metadata"></video>`;
+                    mediaIcon = icons.video;
+                    break;
+                case 'audio':
+                    mediaElement = `<audio src="${item.url}" class="w-full h-full object-cover hidden" preload="metadata"></audio><div class="w-full h-full bg-gray-800 flex items-center justify-center">${icons.audio.replace('h-6 w-6', 'h-16 w-16')}</div>`;
+                    mediaIcon = icons.audio;
+                    break;
+                default: // image
+                    mediaElement = `<img src="${item.url}" alt="${item.caption || 'Gallery image'}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 cursor-pointer" />`;
+                    containerAttributes = `data-lightbox-item="true" data-src="${item.url}"`;
+                    break;
+            }
+            
+            const isSelected = selectedIds.has(item.id);
+            const selectionClass = isSelectionMode ? 'cursor-pointer' : (isEditing ? 'cursor-grab active:cursor-grabbing' : '');
+            return `
+            <div 
+                key="${item.id}"
+                data-id="${item.id}" 
+                draggable="${isEditing && !isSelectionMode}"
+                class="media-item group relative overflow-hidden rounded-lg shadow-lg aspect-square bg-gray-200 dark:bg-gray-700 ${selectionClass} ${isSelected ? 'ring-4 ring-offset-2 ring-indigo-500' : ''}" 
+                ${containerAttributes}
+                ${isSelectionMode ? `data-action="toggle-select-media"` : ''}
+            >
+                ${mediaElement}
+                ${mediaIcon && `<div class="absolute top-3 left-3 p-1.5 bg-black/40 rounded-full">${mediaIcon}</div>`}
+                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                    <p class="text-white text-sm font-semibold transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">${item.caption || ''}</p>
                 </div>
-                `}
-            ` : ''}
-        </div>
-    `}).join('');
-
-    return `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">${items}</div>`;
+                ${isEditing ? `
+                    ${isSelectionMode ? `
+                        <div class="absolute top-2 left-2 text-white bg-black/30 rounded-full pointer-events-none">
+                            ${isSelected ? icons.checkboxChecked : icons.checkbox}
+                        </div>` 
+                    : `
+                    <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <button data-action="edit-media" data-id="${item.id}" class="p-2 bg-blue-500 rounded-full text-white hover:bg-blue-600 transition-transform hover:scale-110">${icons.pencil}</button>
+                        <button data-action="delete-media" data-id="${item.id}" class="p-2 bg-red-500 rounded-full text-white hover:bg-red-600 transition-transform hover:scale-110">${icons.trash}</button>
+                    </div>
+                    `}
+                ` : ''}
+            </div>
+        `}).join('');
+        content = `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">${items}</div>`;
+    }
+    
+    return `
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Thư viện Media</h2>
+        ${content}
+    </div>`;
 }
 
 export function openLightbox(src) {
@@ -105,159 +113,85 @@ export function openLightbox(src) {
     const container = document.getElementById('lightbox-container');
     const image = document.getElementById('lightbox-image');
     
-    // Animate in
-    requestAnimationFrame(() => {
-      container.style.opacity = '1';
-    });
+    requestAnimationFrame(() => { container.style.opacity = '1'; });
 
     let scale = 1, panning = false, pointX = 0, pointY = 0, start = { x: 0, y: 0 };
-    let lastTouchDistance = 0;
-
-    const setTransform = () => {
-        image.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
-    };
-
-    const onPointerDown = (e) => {
-        e.preventDefault();
-        panning = true;
-        start = { x: e.clientX - pointX, y: e.clientY - pointY };
-        image.style.cursor = 'grabbing';
-    };
-
-    const onPointerUp = () => {
-        panning = false;
-        image.style.cursor = 'grab';
-    };
-
-    const onPointerMove = (e) => {
-        if (!panning) return;
-        e.preventDefault();
-        pointX = e.clientX - start.x;
-        pointY = e.clientY - start.y;
-        setTransform();
-    };
     
-    const onWheel = (e) => {
-        e.preventDefault();
-        const xs = (e.clientX - pointX) / scale;
-        const ys = (e.clientY - pointY) / scale;
-        const delta = -e.deltaY;
-        const newScale = scale * (1 + (delta > 0 ? 0.2 : -0.2));
-        scale = Math.min(Math.max(0.5, newScale), 10);
-        pointX = e.clientX - xs * scale;
-        pointY = e.clientY - ys * scale;
-        setTransform();
-    };
+    const setTransform = () => { image.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`; };
+    const onPointerDown = (e) => { e.preventDefault(); panning = true; start = { x: e.clientX - pointX, y: e.clientY - pointY }; image.style.cursor = 'grabbing'; };
+    const onPointerUp = () => { panning = false; image.style.cursor = 'grab'; };
+    const onPointerMove = (e) => { if (!panning) return; e.preventDefault(); pointX = e.clientX - start.x; pointY = e.clientY - start.y; setTransform(); };
+    const onWheel = (e) => { e.preventDefault(); const xs = (e.clientX - pointX) / scale, ys = (e.clientY - pointY) / scale, delta = -e.deltaY; scale *= (1 + (delta > 0 ? 0.2 : -0.2)); scale = Math.min(Math.max(0.5, scale), 10); pointX = e.clientX - xs * scale; pointY = e.clientY - ys * scale; setTransform(); };
 
-    const onTouchStart = (e) => {
-        if (e.touches.length === 2) {
-            panning = false;
-            lastTouchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-        } else if (e.touches.length === 1) {
-            onPointerDown(e.touches[0]);
-        }
-    };
-
-    const onTouchMove = (e) => {
-        e.preventDefault();
-        if (e.touches.length === 2) {
-             const newTouchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-             const zoomRatio = newTouchDistance / lastTouchDistance;
-             scale = Math.min(Math.max(0.5, scale * zoomRatio), 10);
-             lastTouchDistance = newTouchDistance;
-             setTransform();
-        } else if (e.touches.length === 1) {
-            onPointerMove(e.touches[0]);
-        }
-    };
-
-    const onTouchEnd = (e) => {
-        if (e.touches.length === 0) {
-            onPointerUp();
-        }
-    };
-    
     image.addEventListener('mousedown', onPointerDown);
     container.addEventListener('mouseup', onPointerUp);
     container.addEventListener('mouseleave', onPointerUp);
     container.addEventListener('mousemove', onPointerMove);
     container.addEventListener('wheel', onWheel, { passive: false });
-
-    image.addEventListener('touchstart', onTouchStart, { passive: false });
-    container.addEventListener('touchend', onTouchEnd);
-    container.addEventListener('touchcancel', onTouchEnd);
-    container.addEventListener('touchmove', onTouchMove, { passive: false });
-
-    const close = () => {
-        container.style.opacity = '0';
-        setTimeout(() => container.remove(), 300);
-    };
+    
+    const close = () => { container.style.opacity = '0'; setTimeout(() => container.remove(), 300); };
 
     document.getElementById('lightbox-close').addEventListener('click', close);
-    container.addEventListener('click', (e) => {
-        if (e.target === container) close();
-    });
+    container.addEventListener('click', (e) => { if (e.target === container) close(); });
 }
 
-
-export function renderClassList(students, columns, { isEditing = false } = {}) {
-    if (students.length === 0 && !isEditing) {
-         return renderEmptyState(icons.users, "Danh sách lớp trống", "Hiện chưa có thông tin học sinh nào được thêm vào.");
+function renderClassListTable(students, columns) {
+     if (students.length === 0) {
+        return renderEmptyState(icons.users, "Danh sách lớp trống", "Hiện chưa có thông tin học sinh nào được thêm vào.");
     }
 
     const headerHtml = `
         <th scope="col" class="px-2 py-3 w-12">STT</th>
-        ${isEditing ? `<th class="w-10"></th>` : ''}
-        ${columns.map(col => `
-            <th scope="col" class="px-6 py-3 group">
-                <div class="flex items-center justify-between gap-2">
-                    <span>${col.label}</span>
-                    ${isEditing && !col.readonly ? `
-                        <button data-action="delete-column" data-key="${col.key}" class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700">&times;</button>
-                    ` : ''}
-                </div>
-            </th>
-        `).join('')}
-        ${isEditing ? `<th scope="col" class="px-6 py-3 text-right">Hành động</th>` : ''}
+        ${columns.map(col => `<th scope="col" class="px-6 py-3">${col.label}</th>`).join('')}
     `;
 
-    let bodyHtml;
-    if (students.length === 0) {
-        bodyHtml = `<tr><td colspan="${columns.length + (isEditing ? 3 : 1)}" class="text-center py-8">Chưa có thông tin học sinh. Nhấn "Thêm Học sinh" để bắt đầu.</td></tr>`;
-    } else {
-        bodyHtml = students.map((student, index) => `
-            <tr class="student-row bg-white dark:bg-gray-800 even:bg-gray-50 dark:even:bg-gray-800/50 border-b dark:border-gray-700" data-id="${student.id}" draggable="${isEditing}">
-                <td class="px-2 py-4 text-center font-medium text-gray-500 dark:text-gray-400">${index + 1}</td>
-                ${isEditing ? `<td class="text-center cursor-grab active:cursor-grabbing text-gray-400" title="Kéo để sắp xếp">${icons.dragHandle}</td>` : ''}
-                ${columns.map(col => `
-                    <td class="px-6 py-4 ${col.key === 'name' ? 'font-semibold text-gray-900 dark:text-white' : ''}">
-                        ${student[col.key] || ''}
-                    </td>
-                `).join('')}
-                ${isEditing ? `
-                    <td class="px-6 py-4">
-                        <div class="flex items-center justify-end gap-4">
-                            <button data-action="edit-student" data-id="${student.id}" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Sửa</button>
-                            <button data-action="delete-student" data-id="${student.id}" class="font-medium text-red-600 dark:text-red-500 hover:underline">Xóa</button>
-                        </div>
-                    </td>` : ''
-                }
-            </tr>
-        `).join('');
-    }
-
+    const bodyHtml = students.map((student, index) => `
+        <tr class="bg-white dark:bg-gray-800 even:bg-gray-50 dark:even:bg-gray-800/50 border-b dark:border-gray-700">
+            <td class="px-2 py-4 text-center font-medium text-gray-500 dark:text-gray-400">${index + 1}</td>
+            ${columns.map(col => `
+                <td class="px-6 py-4 ${col.key === 'name' ? 'font-semibold text-gray-900 dark:text-white' : ''}">
+                    ${student[col.key] || ''}
+                </td>
+            `).join('')}
+        </tr>
+    `).join('');
+    
     return `
         <div class="overflow-x-auto relative shadow-md sm:rounded-lg bg-white dark:bg-gray-900">
             <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
                     <tr>${headerHtml}</tr>
                 </thead>
-                <tbody class="student-list-tbody">${bodyHtml}</tbody>
+                <tbody>${bodyHtml}</tbody>
             </table>
         </div>`;
 }
 
-export function renderSchedule(schedule, isEditing = false) {
+export function renderClassList(students, columns, { isEditing = false } = {}) {
+    let content;
+    if (isEditing) {
+        content = `
+            <div id="classlist-preview-container" class="mb-4">
+                ${renderClassListTable(students, columns)}
+            </div>
+            <div class="flex justify-end">
+                <button data-action="edit-classlist-spreadsheet" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600">
+                    ${icons.spreadsheet}<span>Chỉnh sửa Bảng</span>
+                </button>
+            </div>
+        `;
+    } else {
+        content = renderClassListTable(students, columns, { isEditing: false });
+    }
+
+    return `
+     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Danh sách Lớp</h2>
+        ${content}
+    </div>`;
+}
+
+function renderScheduleTable(schedule) {
     const daysOfWeek = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
     const sessions = [{name: 'Sáng', key: 'morning'}, {name: 'Chiều', key: 'afternoon'}];
     const periods = [1, 2, 3, 4, 5];
@@ -273,7 +207,6 @@ export function renderSchedule(schedule, isEditing = false) {
         </thead>
         <tbody>
     `;
-
     sessions.forEach(session => {
         periods.forEach((period, periodIndex) => {
             tableHtml += `<tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">`;
@@ -281,28 +214,34 @@ export function renderSchedule(schedule, isEditing = false) {
                 tableHtml += `<td rowspan="5" class="px-4 py-4 font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50 border-r dark:border-gray-600 align-middle w-16">${session.name}</td>`;
             }
             tableHtml += `<td class="px-4 py-4 font-medium text-gray-900 dark:text-white border-r dark:border-gray-600 w-16">Tiết ${period}</td>`;
-            
             daysOfWeek.forEach(day => {
                 const subject = schedule[day]?.[session.key]?.[periodIndex]?.subject || '';
-                tableHtml += `<td class="border-l dark:border-gray-700 p-1 h-16">`;
-                if (isEditing) {
-                    tableHtml += `<input
-                        type="text"
-                        value="${subject}"
-                        data-day="${day}"
-                        data-session="${session.key}"
-                        data-period="${periodIndex}"
-                        class="w-full h-full text-center bg-transparent focus:bg-white dark:focus:bg-gray-700 outline-none rounded-md transition-colors"
-                    />`;
-                } else {
-                    tableHtml += `<span class="p-2 block font-semibold">${subject}</span>`;
-                }
-                tableHtml += `</td>`;
+                tableHtml += `<td class="border-l dark:border-gray-700 p-1 h-16"><span class="p-2 block font-semibold">${subject}</span></td>`;
             });
             tableHtml += `</tr>`;
         });
     });
-
     tableHtml += `</tbody></table></div>`;
     return tableHtml;
+}
+
+
+export function renderSchedule(schedule, isEditing = false) {
+    let content = renderScheduleTable(schedule);
+
+    return `
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Thời khóa biểu</h2>
+            <div id="schedule-preview-container">
+                ${content}
+            </div>
+            ${isEditing ? `
+                <div class="flex justify-end mt-4">
+                    <button data-action="edit-schedule-spreadsheet" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600">
+                        ${icons.spreadsheet}<span>Chỉnh sửa Bảng</span>
+                    </button>
+                </div>
+            ` : ''}
+        </div>
+    `;
 }

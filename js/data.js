@@ -1,7 +1,7 @@
 // URL cơ sở của Cloudflare Worker
 const API_ENDPOINT_BASE = "https://lop84.nhanns23062012.workers.dev";
 
-const APP_DATA_KEY = 'lop84_app_data_local_edit';
+const APP_DATA_KEY = 'lop84_app_data_local_edit_v3';
 
 // Cấu trúc dữ liệu ban đầu, dùng như một phương án dự phòng an toàn
 const getInitialData = () => {
@@ -13,7 +13,7 @@ const getInitialData = () => {
         return acc;
     }, {});
     return {
-        students: [],
+        students: [{ id: 'sample-1', name: 'Nguyễn Văn A', studentId: 'HS001', dob: '2012-01-01', phone: '090xxxxxxx', notes: 'Học sinh mẫu'}],
         studentColumns: [
             { key: 'name', label: 'Họ và Tên', readonly: true },
             { key: 'studentId', label: 'Mã học sinh' },
@@ -43,13 +43,12 @@ export async function fetchAppData() {
         throw new Error(`Lỗi HTTP ${response.status}: ${errorText}`);
     }
     const data = await response.json();
-    if (!data.students || !data.schedule || !data.media) {
-        console.warn('Dữ liệu từ Worker thiếu các trường cần thiết. Trả về cấu trúc mặc định.');
+    // Validate the structure of the fetched data. If anything is missing, return initial data.
+    if (!data || !data.students || !data.schedule || !data.media || !data.studentColumns ||
+        !Array.isArray(data.students) || !Array.isArray(data.media) || !Array.isArray(data.studentColumns)) 
+    {
+        console.warn('Dữ liệu từ Worker không hợp lệ hoặc trống. Trả về cấu trúc mặc định.');
         return getInitialData();
-    }
-     // Ensure backward compatibility for the new studentColumns feature
-    if (!data.studentColumns || !Array.isArray(data.studentColumns)) {
-        data.studentColumns = getInitialData().studentColumns;
     }
     return data;
   } catch (error) {

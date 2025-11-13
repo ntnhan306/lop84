@@ -3,33 +3,53 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Thông tin Lớp 8/4 (v2.0)</title>
+    <title>Thông tin Lớp 8/4 (v3.0)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+      :root {
+        --primary-color: #4f46e5; /* indigo-600 */
+        --primary-color-light: #e0e7ff; /* indigo-100 */
+      }
       /* Custom scrollbar for better aesthetics */
       ::-webkit-scrollbar { width: 8px; }
       ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
       ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: #555; }
-      .nav-button.active {
-        background-color: #4f46e5; /* indigo-600 */
-        color: white;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+      .nav-tab {
+        position: relative;
+        transition: color 0.3s ease;
       }
-       .nav-button.active svg {
-        color: white;
+      .nav-tab::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background-color: var(--primary-color);
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+      }
+      .nav-tab.active {
+        color: var(--primary-color);
+      }
+      .dark .nav-tab.active {
+        color: var(--primary-color-light);
+      }
+      .nav-tab.active::after {
+        transform: scaleX(1);
       }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans antialiased">
 
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 lg:p-8">
+    <div class="min-h-screen p-4 sm:p-6 lg:p-8">
       <div class="max-w-7xl mx-auto">
-        <header class="flex flex-wrap justify-between items-center gap-4 mb-6 pb-4 border-b-2 border-indigo-500">
+        <header class="flex flex-wrap justify-between items-center gap-4 mb-8">
           <div>
             <h1 class="text-4xl font-bold text-indigo-600 dark:text-indigo-400">Thông tin Lớp 8/4</h1>
-            <div class="flex items-center gap-4 mt-1">
-                <p class="text-lg text-gray-600 dark:text-gray-300">Trang xem thông tin</p>
+            <div class="flex items-center gap-4 mt-2">
                 <div id="connection-status" class="flex items-center gap-2 text-sm">
                     <!-- Status will be injected by JS -->
                 </div>
@@ -45,57 +65,31 @@
           </a>
         </header>
 
-        <!-- Navigation Buttons -->
-        <nav class="mb-8 flex flex-wrap justify-center sm:justify-start gap-3">
-            <button data-view="gallery" class="nav-button inline-flex items-center gap-2 px-5 py-2.5 font-medium bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-center hover:bg-gray-100 dark:hover:bg-gray-600 focus:ring-4 focus:ring-indigo-300 dark:focus:ring-indigo-800 transition-all">
-                <!-- Icon will be injected by JS -->
-                <span>Thư viện</span>
-            </button>
-            <button data-view="classlist" class="nav-button inline-flex items-center gap-2 px-5 py-2.5 font-medium bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-center hover:bg-gray-100 dark:hover:bg-gray-600 focus:ring-4 focus:ring-indigo-300 dark:focus:ring-indigo-800 transition-all">
-                <!-- Icon will be injected by JS -->
-                <span>Danh sách Lớp</span>
-            </button>
-            <button data-view="schedule" class="nav-button inline-flex items-center gap-2 px-5 py-2.5 font-medium bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-center hover:bg-gray-100 dark:hover:bg-gray-600 focus:ring-4 focus:ring-indigo-300 dark:focus:ring-indigo-800 transition-all">
-                <!-- Icon will be injected by JS -->
-                <span>Thời khóa biểu</span>
-            </button>
+        <!-- Navigation Tabs -->
+        <nav class="border-b-2 border-gray-200 dark:border-gray-700 mb-8">
+            <div class="flex items-center gap-8 -mb-px">
+                <button data-view="gallery" class="nav-tab py-4 px-1 inline-flex items-center gap-2 text-lg font-medium text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-300">
+                    <!-- Icon will be injected by JS -->
+                    <span>Thư viện</span>
+                </button>
+                <button data-view="classlist" class="nav-tab py-4 px-1 inline-flex items-center gap-2 text-lg font-medium text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-300">
+                    <!-- Icon will be injected by JS -->
+                    <span>Danh sách Lớp</span>
+                </button>
+                <button data-view="schedule" class="nav-tab py-4 px-1 inline-flex items-center gap-2 text-lg font-medium text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-300">
+                    <!-- Icon will be injected by JS -->
+                    <span>Thời khóa biểu</span>
+                </button>
+            </div>
         </nav>
 
-        <main class="space-y-12">
-            <!-- Placeholder shown on initial load -->
-            <div id="placeholder" class="text-center py-16">
-                <!-- Content will be injected by JS -->
-            </div>
-
-            <!-- Content Sections (initially hidden) -->
-            <section id="gallery-section" class="hidden">
-                <div class="flex items-center gap-3 mb-6">
-                    <div id="gallery-icon" class="text-indigo-500"></div>
-                    <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Thư viện</h2>
-                </div>
-                <div id="gallery-container"></div>
-            </section>
-
-            <section id="classlist-section" class="hidden">
-                 <div class="flex items-center gap-3 mb-6">
-                    <div id="classlist-icon" class="text-indigo-500"></div>
-                    <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Danh sách Lớp</h2>
-                </div>
-                <div id="classlist-container"></div>
-            </section>
-
-            <section id="schedule-section" class="hidden">
-                 <div class="flex items-center gap-3 mb-6">
-                    <div id="schedule-icon" class="text-indigo-500"></div>
-                    <h2 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Thời khóa biểu</h2>
-                </div>
-                <div id="schedule-container"></div>
-            </section>
+        <main id="view-content">
+            <!-- Content will be injected by JS -->
         </main>
 
         <footer class="text-center mt-12 text-gray-500 dark:text-gray-400">
             <p>&copy; 2024 Lớp 8/4. Powered by Modern Technology.</p>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v2.0</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v3.0</p>
         </footer>
       </div>
     </div>

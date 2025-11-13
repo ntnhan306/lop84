@@ -1,10 +1,10 @@
-// v2.1 - Interactive Overhaul
+// v3.0 - The Spreadsheet Experience
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, fetchPasswordHash, updatePasswordOnKV } from './data.js';
 import { hashPassword } from './auth.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
 let appData = null;
-let sessionAuthToken = null; // Stores the password hash after successful login
+let sessionAuthToken = null;
 
 // Module-scoped state
 let isSelectionMode = false;
@@ -20,7 +20,7 @@ function renderAuthForm(storedHash) {
         <div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
             <div class="max-w-md w-full bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8 space-y-6">
                 <div class="text-center">
-                    <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white">Trang Chỉnh sửa</h2>
+                    <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white">Trang Chỉnh sửa (v3.0)</h2>
                     <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Vui lòng nhập mật khẩu để tiếp tục.<br>Nếu là lần đầu, mật khẩu mặc định là <strong>000000</strong>.</p>
                 </div>
                 <form id="auth-form" class="space-y-6">
@@ -69,18 +69,15 @@ function updateSyncState({ status, message = '' }) {
     const button = document.getElementById('sync-kv-btn');
     if (!wrapper || !iconEl || !titleEl || !messageEl || !button) return;
 
-    // Reset classes
     wrapper.className = 'flex items-center gap-4 p-4 rounded-lg border-l-4 transition-colors';
     
     switch(status) {
         case 'dirty':
             wrapper.classList.add('bg-yellow-50', 'dark:bg-yellow-900/20', 'border-yellow-400');
-            iconEl.innerHTML = icons.warning;
-            iconEl.className = 'text-yellow-500';
+            iconEl.innerHTML = icons.warning; iconEl.className = 'text-yellow-500';
             titleEl.textContent = 'Có thay đổi chưa lưu';
             messageEl.textContent = message || 'Nhấn nút bên cạnh để lưu và đồng bộ dữ liệu.';
-            button.disabled = false;
-            button.innerHTML = `<span>Lưu và Đồng bộ</span>`;
+            button.disabled = false; button.innerHTML = `<span>Lưu và Đồng bộ</span>`;
             break;
         case 'syncing':
             wrapper.classList.add('bg-blue-50', 'dark:bg-blue-900/20', 'border-blue-400');
@@ -88,26 +85,21 @@ function updateSyncState({ status, message = '' }) {
             iconEl.className = '';
             titleEl.textContent = 'Đang đồng bộ...';
             messageEl.textContent = 'Đang gửi dữ liệu đến máy chủ Cloudflare.';
-            button.disabled = true;
-            button.innerHTML = `<span>Đang xử lý...</span>`;
+            button.disabled = true; button.innerHTML = `<span>Đang xử lý...</span>`;
             break;
         case 'synced':
             wrapper.classList.add('bg-green-50', 'dark:bg-green-900/20', 'border-green-400');
-            iconEl.innerHTML = icons.check;
-            iconEl.className = 'text-green-500';
+            iconEl.innerHTML = icons.check; iconEl.className = 'text-green-500';
             titleEl.textContent = 'Đã đồng bộ';
             messageEl.textContent = message || 'Tất cả dữ liệu đã được cập nhật thành công.';
-            button.disabled = true;
-            button.innerHTML = `<span>Đã lưu</span>`;
+            button.disabled = true; button.innerHTML = `<span>Đã lưu</span>`;
             break;
         case 'error':
              wrapper.classList.add('bg-red-50', 'dark:bg-red-900/20', 'border-red-400');
-            iconEl.innerHTML = icons.error;
-            iconEl.className = 'text-red-500';
+            iconEl.innerHTML = icons.error; iconEl.className = 'text-red-500';
             titleEl.textContent = 'Đồng bộ thất bại';
             messageEl.textContent = message || 'Đã xảy ra lỗi. Vui lòng thử lại.';
-            button.disabled = false;
-            button.innerHTML = `<span>Thử lại</span>`;
+            button.disabled = false; button.innerHTML = `<span>Thử lại</span>`;
             break;
     }
 }
@@ -125,8 +117,8 @@ function renderEditPage() {
             <div class="max-w-7xl mx-auto">
                 <header class="flex flex-wrap justify-between items-center gap-4 mb-8 pb-4 border-b-2 border-teal-500">
                     <div>
-                        <h1 class="text-4xl font-bold text-teal-600 dark:text-teal-400">Chỉnh sửa Lớp 8/4</h1>
-                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Giao diện quản trị v2.1</p>
+                        <h1 class="text-4xl font-bold text-teal-600 dark:text-teal-400">Chỉnh sửa (v3.0)</h1>
+                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Giao diện quản trị</p>
                     </div>
                     <div class="flex items-center flex-wrap gap-2">
                         <button id="change-password-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 transition-colors">
@@ -149,65 +141,26 @@ function renderEditPage() {
                         </div>
                     </section>
                     
-                    <!-- Accordion container -->
-                    <div id="accordion-container" class="space-y-2">
-                        <!-- Gallery Section -->
-                        <div class="accordion-item bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden">
-                            <button data-accordion="gallery" class="accordion-header w-full flex justify-between items-center p-6 text-left">
-                                <div class="flex items-center gap-4">
-                                    <span class="text-teal-500">${icons.gallery}</span>
-                                    <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Thư viện</h2>
-                                </div>
-                                <span class="text-gray-500">${icons.chevronDown}</span>
-                            </button>
-                            <div id="gallery-accordion-content" class="accordion-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
-                                <div class="p-6 border-t dark:border-gray-700 space-y-4">
-                                    <div id="gallery-actions" class="flex flex-wrap items-center gap-4"></div>
-                                    <div id="gallery-container"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Class List Section -->
-                        <div class="accordion-item bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden">
-                             <button data-accordion="classlist" class="accordion-header w-full flex justify-between items-center p-6 text-left">
-                                <div class="flex items-center gap-4">
-                                    <span class="text-teal-500">${icons.users}</span>
-                                    <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Danh sách Lớp</h2>
-                                </div>
-                                <span class="text-gray-500">${icons.chevronDown}</span>
-                            </button>
-                            <div id="classlist-accordion-content" class="accordion-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
-                                 <div class="p-6 border-t dark:border-gray-700 space-y-4">
-                                    <div class="flex flex-wrap justify-end items-center gap-4">
-                                       <button data-action="add-column" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600">${icons.plus}<span>Thêm Cột</span></button>
-                                       <button data-action="add-student" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600">${icons.plus}<span>Thêm Học sinh</span></button>
-                                    </div>
-                                    <div id="classlist-container"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Schedule Section -->
-                         <div class="accordion-item bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden">
-                             <button data-accordion="schedule" class="accordion-header w-full flex justify-between items-center p-6 text-left">
-                                <div class="flex items-center gap-4">
-                                     <span class="text-teal-500">${icons.calendar}</span>
-                                    <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Thời khóa biểu</h2>
-                                </div>
-                                <span class="text-gray-500">${icons.chevronDown}</span>
-                            </button>
-                            <div id="schedule-accordion-content" class="accordion-content max-h-0 overflow-hidden transition-all duration-500 ease-in-out">
-                                 <div class="p-6 border-t dark:border-gray-700">
-                                    <div id="schedule-container"></div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="space-y-8">
+                        <section id="gallery-section" class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 space-y-4">
+                             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Thư viện</h2>
+                             <div id="gallery-actions" class="flex flex-wrap items-center gap-4"></div>
+                             <div id="gallery-container"></div>
+                        </section>
+                        <section id="classlist-section" class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 space-y-4">
+                             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Danh sách Lớp</h2>
+                             <div id="classlist-container"></div>
+                        </section>
+                        <section id="schedule-section" class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 space-y-4">
+                             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Thời khóa biểu</h2>
+                             <div id="schedule-container"></div>
+                        </section>
                     </div>
+
                 </main>
                 <footer class="text-center mt-12 text-gray-500 dark:text-gray-400">
                     <p>&copy; ${new Date().getFullYear()} Lớp 8/4. Chế độ chỉnh sửa.</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v2.1</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v3.0</p>
                 </footer>
             </div>
         </div>
@@ -220,26 +173,16 @@ function renderEditPage() {
     updateSyncState({ status: 'synced', message: 'Dữ liệu đã được tải về và sẵn sàng để chỉnh sửa.' });
 }
 
-
 function renderAllSections() {
     renderGallerySection();
     renderClassListSection();
-    document.getElementById('schedule-container').innerHTML = renderSchedule(appData.schedule, true);
+    renderScheduleSection();
 }
-
-function updateOpenAccordionHeight(accordionName) {
-    const content = document.getElementById(`${accordionName}-accordion-content`);
-    if (content && content.style.maxHeight) { // Check if it's open by seeing if maxHeight is set
-        content.style.maxHeight = content.scrollHeight + "px";
-    }
-}
-
 
 function renderGallerySection() {
     const container = document.getElementById('gallery-container');
     const actionsContainer = document.getElementById('gallery-actions');
     
-    // Render Actions
     let actionsHTML = `
         <label class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 cursor-pointer">
             ${icons.plus}<span>Tải lên Tệp</span>
@@ -253,32 +196,26 @@ function renderGallerySection() {
 
     if (isSelectionMode) {
         const allSelected = appData.media.length > 0 && selectedMediaIds.size === appData.media.length;
-        actionsHTML += `
-            <button data-action="${allSelected ? 'deselect-all-media' : 'select-all-media'}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600">
-                ${icons.checkboxChecked}<span>${allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}</span>
-            </button>
-        `;
+        actionsHTML += `<button data-action="${allSelected ? 'deselect-all-media' : 'select-all-media'}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600">${icons.checkboxChecked}<span>${allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}</span></button>`;
     }
 
     if (isSelectionMode && selectedMediaIds.size > 0) {
-        actionsHTML += `
-            <div class="flex items-center gap-4 ml-auto">
-                <span class="font-medium text-gray-700 dark:text-gray-300">Đã chọn: ${selectedMediaIds.size}</span>
-                <button data-action="delete-selected-media" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700">${icons.trash}<span>Xóa mục đã chọn</span></button>
-            </div>
-        `;
+        actionsHTML += `<div class="flex items-center gap-4 ml-auto"><span class="font-medium text-gray-700 dark:text-gray-300">Đã chọn: ${selectedMediaIds.size}</span><button data-action="delete-selected-media" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700">${icons.trash}<span>Xóa mục đã chọn</span></button></div>`;
     }
     actionsContainer.innerHTML = actionsHTML;
 
-    // Render Gallery Grid
-    container.innerHTML = renderGallery(appData.media, { isEditing: true, isSelectionMode, selectedIds: selectedMediaIds });
+    container.innerHTML = renderGallery(appData.media, { isEditing: true, isSelectionMode, selectedIds: selectedMediaIds }).replace(/<h2.*?>.*?<\/h2>/, ''); // Remove the title
 }
 
 function renderClassListSection() {
     const container = document.getElementById('classlist-container');
-    container.innerHTML = renderClassList(appData.students, appData.studentColumns, { isEditing: true });
+    container.innerHTML = renderClassList(appData.students, appData.studentColumns, { isEditing: true }).replace(/<h2.*?>.*?<\/h2>/, '');
 }
 
+function renderScheduleSection() {
+    const container = document.getElementById('schedule-container');
+    container.innerHTML = renderSchedule(appData.schedule, true).replace(/<h2.*?>.*?<\/h2>/, '');
+}
 
 async function showEditPage() {
     authContainer.innerHTML = `<div class="flex items-center justify-center h-screen">Đang tải dữ liệu mới nhất...</div>`;
@@ -291,20 +228,16 @@ async function showEditPage() {
 
 async function handleSync() {
     updateSyncState({ status: 'syncing' });
-
     if (!sessionAuthToken) {
         updateSyncState({ status: 'error', message: 'Lỗi xác thực. Vui lòng đăng nhập lại.' });
         return;
     }
-
     const dataToSync = getAppDataFromStorage();
     if (!dataToSync) {
         updateSyncState({ status: 'error', message: 'Lỗi: Không tìm thấy dữ liệu để đồng bộ.' });
         return;
     }
-    
     const result = await saveAppData(dataToSync, sessionAuthToken);
-
     if (result.success) {
         updateSyncState({ status: 'synced', message: result.message });
     } else {
@@ -312,7 +245,7 @@ async function handleSync() {
     }
 }
 
-function openModal(title, contentHTML, size = 'max-w-2xl') {
+function openModal(title, contentHTML, size = 'max-w-4xl', isSpreadsheet = false) {
     modalContainer.innerHTML = `
         <div id="modal-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 transition-opacity duration-300 ease-in-out" style="opacity: 0;">
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${size} max-h-[90vh] flex flex-col transform scale-95 transition-all duration-300 ease-in-out" style="opacity: 0;">
@@ -322,19 +255,21 @@ function openModal(title, contentHTML, size = 'max-w-2xl') {
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
                     </button>
                 </div>
-                <div class="p-6 overflow-y-auto">${contentHTML}</div>
+                <div class="p-6 overflow-y-auto flex-grow">${contentHTML}</div>
+                ${isSpreadsheet ? `
+                <div class="p-4 border-t dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50">
+                    <button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button>
+                    <button type="button" data-action="modal-save" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu và Đóng</button>
+                </div>
+                ` : ''}
             </div>
         </div>`;
 
-    // Trigger animations
     setTimeout(() => {
         const backdrop = document.getElementById('modal-backdrop');
         const modal = backdrop.querySelector(':scope > div');
-        if(backdrop) backdrop.style.opacity = '1';
-        if(modal) {
-          modal.style.opacity = '1';
-          modal.style.transform = 'scale(1)';
-        }
+        if (backdrop) backdrop.style.opacity = '1';
+        if (modal) { modal.style.opacity = '1'; modal.style.transform = 'scale(1)'; }
     }, 10);
 }
 
@@ -343,43 +278,115 @@ function closeModal() {
     if (backdrop) {
         const modal = backdrop.querySelector(':scope > div');
         backdrop.style.opacity = '0';
-        if (modal) {
-            modal.style.opacity = '0';
-            modal.style.transform = 'scale(0.95)';
-        }
-        setTimeout(() => { modalContainer.innerHTML = '' }, 300); // Remove from DOM after animation
+        if (modal) { modal.style.opacity = '0'; modal.style.transform = 'scale(0.95)'; }
+        setTimeout(() => { modalContainer.innerHTML = '' }, 300);
     }
 }
 
-function showStudentForm(studentId = null) {
-    const isEditing = studentId !== null;
-    const student = isEditing ? appData.students.find(s => s.id === studentId) : {};
-    const title = isEditing ? 'Sửa thông tin học sinh' : 'Thêm học sinh mới';
+function showClassListSpreadsheet() {
+    const title = 'Chỉnh sửa Danh sách Lớp';
+    openModal(title, '<div id="spreadsheet-container" class="h-[65vh]"></div>', 'max-w-7xl', true);
+    
+    const columns = appData.studentColumns.map(col => ({
+        type: 'text',
+        title: col.label,
+        width: col.key === 'name' ? 250 : (col.key === 'notes' ? 300 : 150),
+        name: col.key,
+        readOnly: col.readonly || false,
+    }));
 
-    const fieldsHTML = appData.studentColumns.map(col => `
-        <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">${col.label}</label>
-            <input 
-                type="${col.key === 'dob' ? 'date' : col.key === 'phone' ? 'tel' : 'text'}" 
-                name="${col.key}" 
-                value="${student[col.key] || ''}" 
-                placeholder="${col.label}"
-                ${col.key === 'name' ? 'required' : ''}
-                class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-        </div>
-    `).join('');
+    const data = appData.students.map(student => {
+        const row = {};
+        appData.studentColumns.forEach(col => { row[col.key] = student[col.key] || ''; });
+        return row;
+    });
 
-    const formHTML = `
-        <form id="student-form" data-id="${studentId || ''}" class="space-y-4">
-            ${fieldsHTML}
-            <div class="flex justify-end space-x-3 pt-4">
-                <button type="button" id="form-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button>
-                <button type="submit" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu</button>
-            </div>
-        </form>
-    `;
-    openModal(title, formHTML, 'max-w-lg');
+    const spreadsheetEl = document.getElementById('spreadsheet-container');
+    const spreadsheet = jspreadsheet(spreadsheetEl, {
+        data: data,
+        columns: columns,
+        allowInsertRow: true,
+        allowInsertColumn: true,
+        allowDeleteRow: true,
+        allowDeleteColumn: true,
+        allowRenameColumn: true,
+        columnDrag: true,
+        rowDrag: true,
+        license: 'CE'
+    });
+
+    modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
+        const newData = spreadsheet.getData();
+        const newHeaders = spreadsheet.getHeaders(true);
+
+        appData.studentColumns = newHeaders.map((header, index) => {
+             const key = spreadsheet.options.columns[index]?.name || `custom_${Date.now()}_${index}`;
+             const existingCol = appData.studentColumns.find(c => c.key === key);
+             return {
+                 key: key,
+                 label: header,
+                 readonly: existingCol?.readonly || false
+             };
+        });
+
+        appData.students = newData.map((row, index) => {
+            const student = { id: appData.students[index]?.id || crypto.randomUUID() };
+            appData.studentColumns.forEach((col, colIndex) => {
+                student[col.key] = row[colIndex];
+            });
+            return student;
+        });
+
+        updateAndSaveChanges();
+        renderClassListSection();
+        closeModal();
+    };
+}
+
+function showScheduleSpreadsheet() {
+    const title = "Chỉnh sửa Thời khóa biểu";
+    openModal(title, '<div id="spreadsheet-container" class="h-[65vh]"></div>', 'max-w-7xl', true);
+
+    const days = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const columns = [
+        { type: 'text', title: 'Buổi', width: 80, readOnly: true },
+        { type: 'text', title: 'Tiết', width: 80, readOnly: true },
+        ...days.map(day => ({ type: 'text', title: day, width: 150 }))
+    ];
+
+    const data = [];
+    const sessions = [{name: 'Sáng', key: 'morning'}, {name: 'Chiều', key: 'afternoon'}];
+    sessions.forEach(session => {
+        for (let i = 0; i < 5; i++) {
+            const row = [session.name, `Tiết ${i + 1}`];
+            days.forEach(day => {
+                row.push(appData.schedule[day]?.[session.key]?.[i]?.subject || '');
+            });
+            data.push(row);
+        }
+    });
+
+    const spreadsheetEl = document.getElementById('spreadsheet-container');
+    const spreadsheet = jspreadsheet(spreadsheetEl, {
+        data: data,
+        columns: columns,
+        license: 'CE',
+    });
+    
+    modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
+        const rawData = spreadsheet.getData();
+        sessions.forEach((session, sessionIndex) => {
+            for (let i = 0; i < 5; i++) {
+                 const rowIndex = sessionIndex * 5 + i;
+                 days.forEach((day, dayIndex) => {
+                     appData.schedule[day][session.key][i].subject = rawData[rowIndex][dayIndex + 2];
+                 });
+            }
+        });
+        updateAndSaveChanges();
+        renderScheduleSection();
+        closeModal();
+    };
 }
 
 function showMediaForm(mediaId = null) {
@@ -398,27 +405,13 @@ function showMediaForm(mediaId = null) {
                     <option value="audio" ${item.type === 'audio' ? 'selected' : ''}>Âm thanh</option>
                 </select>
             </div>
-
-            <div id="media-preview-wrapper" class="w-full aspect-video bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden">
-                <span class="text-gray-500 dark:text-gray-400">Xem trước</span>
-            </div>
-            
-            <div id="url-input-section">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Link (URL)</label>
-                <input type="url" name="url-input" value="${item.url || ''}" class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://..." required/>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Chú thích</label>
-                <textarea name="caption" class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 h-20" placeholder="Mô tả ngắn...">${item.caption || ''}</textarea>
-            </div>
-            <div class="flex justify-end space-x-3 pt-4 border-t dark:border-gray-700">
-                <button type="button" id="form-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button>
-                <button type="submit" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu</button>
-            </div>
+            <div id="media-preview-wrapper" class="w-full aspect-video bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden"><span class="text-gray-500 dark:text-gray-400">Xem trước</span></div>
+            <div id="url-input-section"><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Link (URL)</label><input type="url" name="url-input" value="${item.url || ''}" class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://..." required/></div>
+            <div><label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Chú thích</label><textarea name="caption" class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500 h-20" placeholder="Mô tả ngắn...">${item.caption || ''}</textarea></div>
+            <div class="flex justify-end space-x-3 pt-4 border-t dark:border-gray-700"><button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button><button type="submit" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu</button></div>
         </form>
     `;
-    openModal(title, formHTML);
+    openModal(title, formHTML, 'max-w-2xl');
 
     const form = document.getElementById('media-form');
     const typeSelect = form.querySelector('[name="type"]');
@@ -427,24 +420,15 @@ function showMediaForm(mediaId = null) {
     const previewWrapper = document.getElementById('media-preview-wrapper');
 
     const updatePreview = (type, src) => {
-        if (!src) {
-            previewWrapper.innerHTML = `<span class="text-gray-500 dark:text-gray-400">Xem trước</span>`;
-            return;
-        }
-        let previewElement = '';
-        if (type === 'image') {
-            previewElement = `<img src="${src}" class="max-w-full max-h-full object-contain">`;
-        } else if (type === 'video') {
-            previewElement = `<video src="${src}" controls class="max-w-full max-h-full object-contain"></video>`;
-        } else if (type === 'audio') {
-            previewElement = `<audio src="${src}" controls></audio>`;
-        }
-        previewWrapper.innerHTML = previewElement;
+        if (!src) { previewWrapper.innerHTML = `<span class="text-gray-500 dark:text-gray-400">Xem trước</span>`; return; }
+        let el = '';
+        if (type === 'image') el = `<img src="${src}" class="max-w-full max-h-full object-contain">`;
+        else if (type === 'video') el = `<video src="${src}" controls class="max-w-full max-h-full object-contain"></video>`;
+        else if (type === 'audio') el = `<audio src="${src}" controls></audio>`;
+        previewWrapper.innerHTML = el;
         hiddenUrl.value = src;
     };
-    
     if (item.url) updatePreview(item.type, item.url);
-    
     typeSelect.addEventListener('change', () => updatePreview(typeSelect.value, urlInput.value));
     urlInput.addEventListener('input', () => updatePreview(typeSelect.value, urlInput.value));
 }
@@ -453,17 +437,12 @@ function showChangePasswordForm() {
     const title = 'Đổi Mật khẩu';
     const formHTML = `
         <form id="change-password-form" class="space-y-4">
-            <p id="change-pass-error" class="text-red-500 text-sm"></p>
-            <p id="change-pass-success" class="text-green-500 text-sm"></p>
-            <input type="password" name="currentPassword" placeholder="Mật khẩu hiện tại" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"/>
-            <input type="password" name="newPassword" placeholder="Mật khẩu mới (ít nhất 6 ký tự)" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"/>
-            <input type="password" name="confirmNewPassword" placeholder="Xác nhận mật khẩu mới" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 focus:ring-indigo-500 focus:border-indigo-500"/>
-            <div class="flex justify-end space-x-3 pt-4">
-                 <button type="button" id="form-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button>
-                <button type="submit" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors">Lưu thay đổi</button>
-            </div>
-        </form>
-    `;
+            <p id="change-pass-error" class="text-red-500 text-sm"></p><p id="change-pass-success" class="text-green-500 text-sm"></p>
+            <input type="password" name="currentPassword" placeholder="Mật khẩu hiện tại" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+            <input type="password" name="newPassword" placeholder="Mật khẩu mới (ít nhất 6 ký tự)" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+            <input type="password" name="confirmNewPassword" placeholder="Xác nhận mật khẩu mới" required class="block w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+            <div class="flex justify-end space-x-3 pt-4"><button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500">Hủy</button><button type="submit" class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600">Lưu thay đổi</button></div>
+        </form>`;
     openModal(title, formHTML, 'max-w-lg');
 }
 
@@ -473,20 +452,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         editContainer = document.getElementById('edit-container');
         modalContainer = document.getElementById('modal-container');
 
-        if (!authContainer || !editContainer || !modalContainer) {
-            throw new Error("Không thể khởi tạo giao diện. Một hoặc nhiều vùng chứa chính (container) không được tìm thấy trong DOM.");
-        }
-        
-        let draggedElement = null; // For drag-and-drop
+        if (!authContainer || !editContainer || !modalContainer) throw new Error("DOM containers not found.");
 
-        editContainer.addEventListener('input', (e) => {
-            const target = e.target;
-            if (target.matches('#schedule-container input')) {
-                const { day, session, period } = target.dataset;
-                appData.schedule[day][session][parseInt(period)].subject = target.value;
-                updateAndSaveChanges();
-            }
-        });
+        let draggedElement = null;
 
         editContainer.addEventListener('change', (e) => {
              const target = e.target;
@@ -494,218 +462,87 @@ document.addEventListener('DOMContentLoaded', async () => {
              if (action === 'upload-multi-media') {
                  const files = target.files;
                  if (!files.length) return;
-                 const FILE_SIZE_LIMIT_MB = 10;
-                 const FILE_SIZE_LIMIT_BYTES = FILE_SIZE_LIMIT_MB * 1024 * 1024;
-
+                 
                  Array.from(files).forEach(file => {
-                     if (file.size > FILE_SIZE_LIMIT_BYTES) {
-                         alert(`Tệp "${file.name}" quá lớn (tối đa ${FILE_SIZE_LIMIT_MB}MB) và sẽ bị bỏ qua.`);
-                         return;
-                     }
                      const reader = new FileReader();
                      reader.onload = (e) => {
                          const type = file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : 'audio';
-                         const newItem = { id: crypto.randomUUID(), type, url: e.target.result, caption: file.name };
-                         appData.media.push(newItem);
+                         appData.media.push({ id: crypto.randomUUID(), type, url: e.target.result, caption: file.name });
                          updateAndSaveChanges();
                          renderGallerySection();
-                         updateOpenAccordionHeight('gallery');
                      };
                      reader.readAsDataURL(file);
                  });
-                 target.value = ''; // Reset file input
+                 target.value = '';
              }
         });
         
         editContainer.addEventListener('dragstart', (e) => {
             draggedElement = e.target;
-            if (draggedElement.matches('.media-item') || draggedElement.matches('.student-row')) {
-                setTimeout(() => {
-                    draggedElement.classList.add('opacity-50');
-                }, 0);
+            if (draggedElement.matches('.media-item')) {
+                setTimeout(() => { draggedElement.classList.add('opacity-50'); }, 0);
             } else {
                 draggedElement = null;
             }
         });
-        
-        editContainer.addEventListener('dragend', (e) => {
-             if (draggedElement) {
-                draggedElement.classList.remove('opacity-50');
-                draggedElement = null;
-             }
-        });
-        
-        editContainer.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            if (!draggedElement) return;
-
-            const SCROLL_ZONE_SIZE = 80; // 80px from top or bottom
-            const SCROLL_SPEED = 10; // pixels per event
-
-            const clientY = e.clientY;
-            const viewportHeight = window.innerHeight;
-
-            if (clientY < SCROLL_ZONE_SIZE) {
-                window.scrollBy(0, -SCROLL_SPEED);
-            } else if (clientY > viewportHeight - SCROLL_ZONE_SIZE) {
-                window.scrollBy(0, SCROLL_SPEED);
-            }
-        });
-
+        editContainer.addEventListener('dragend', () => { if (draggedElement) { draggedElement.classList.remove('opacity-50'); draggedElement = null; } });
+        editContainer.addEventListener('dragover', (e) => { e.preventDefault(); if (!draggedElement) return; });
         editContainer.addEventListener('drop', (e) => {
             e.preventDefault();
-            if (!draggedElement) return;
-
-            if (draggedElement.matches('.media-item')) {
-                const targetElement = e.target.closest('.media-item');
-                if (targetElement && targetElement !== draggedElement) {
-                    const sourceId = draggedElement.dataset.id;
-                    const targetId = targetElement.dataset.id;
-                    const sourceIndex = appData.media.findIndex(item => item.id === sourceId);
-                    const targetIndex = appData.media.findIndex(item => item.id === targetId);
-
-                    if (sourceIndex > -1 && targetIndex > -1) {
-                        const [movedItem] = appData.media.splice(sourceIndex, 1);
-                        appData.media.splice(targetIndex, 0, movedItem);
-                        updateAndSaveChanges();
-                        renderGallerySection();
-                    }
+            if (!draggedElement || !draggedElement.matches('.media-item')) return;
+            const targetElement = e.target.closest('.media-item');
+            if (targetElement && targetElement !== draggedElement) {
+                const sourceId = draggedElement.dataset.id;
+                const targetId = targetElement.dataset.id;
+                const sourceIndex = appData.media.findIndex(item => item.id === sourceId);
+                const targetIndex = appData.media.findIndex(item => item.id === targetId);
+                if (sourceIndex > -1 && targetIndex > -1) {
+                    const [movedItem] = appData.media.splice(sourceIndex, 1);
+                    appData.media.splice(targetIndex, 0, movedItem);
+                    updateAndSaveChanges();
+                    renderGallerySection();
                 }
-            } else if (draggedElement.matches('.student-row')) {
-                const targetElement = e.target.closest('.student-row');
-                if (targetElement && targetElement !== draggedElement) {
-                    const sourceId = draggedElement.dataset.id;
-                    const targetId = targetElement.dataset.id;
-                    const sourceIndex = appData.students.findIndex(s => s.id === sourceId);
-                    const targetIndex = appData.students.findIndex(s => s.id === targetId);
-                    if (sourceIndex > -1 && targetIndex > -1) {
-                         const [movedItem] = appData.students.splice(sourceIndex, 1);
-                        appData.students.splice(targetIndex, 0, movedItem);
-                        updateAndSaveChanges();
-                        renderClassListSection();
-                    }
-                }
-            }
-            if (draggedElement) {
-                draggedElement.classList.remove('opacity-50');
-                draggedElement = null;
             }
         });
-
 
         editContainer.addEventListener('click', (e) => {
             const button = e.target.closest('button, [data-action]');
             if (!button) return;
-            
-            const action = button.dataset.action || (button.closest('[data-accordion]') ? 'accordion-toggle' : null);
-            if (!action) return;
-            
-            const id = button.dataset.id || e.target.closest('[data-id]')?.dataset.id;
+            const action = button.dataset.action;
+            const id = e.target.closest('[data-id]')?.dataset.id;
             
             switch (action) {
-                case 'accordion-toggle': {
-                    const accordionName = button.dataset.accordion;
-                    const content = document.getElementById(`${accordionName}-accordion-content`);
-                    const icon = button.querySelector('svg:last-child');
-                    
-                    document.querySelectorAll('.accordion-content').forEach(el => {
-                        if (el !== content) {
-                            el.style.maxHeight = null;
-                            el.closest('.accordion-item').querySelector('.accordion-header svg:last-child').classList.remove('rotate-180');
-                        }
-                    });
-
-                    if (content.style.maxHeight) {
-                        content.style.maxHeight = null;
-                        icon.classList.remove('rotate-180');
-                    } else {
-                        content.style.maxHeight = content.scrollHeight + "px";
-                        icon.classList.add('rotate-180');
-                    }
-                    break;
-                }
-                case 'add-student': showStudentForm(); break;
-                case 'edit-student': showStudentForm(id); break;
-                case 'delete-student':
-                    if (confirm('Bạn có chắc muốn xóa học sinh này?')) {
-                        appData.students = appData.students.filter(s => s.id !== id);
-                        updateAndSaveChanges();
-                        renderClassListSection();
-                        updateOpenAccordionHeight('classlist');
-                    }
-                    break;
-                 case 'add-column': {
-                    const newName = prompt('Nhập tên cho cột mới:', 'Cột Mới');
-                    if (newName) {
-                        const newKey = `custom_${Date.now()}`;
-                        appData.studentColumns.push({ key: newKey, label: newName });
-                        appData.students.forEach(s => s[newKey] = '');
-                        updateAndSaveChanges();
-                        renderClassListSection();
-                        updateOpenAccordionHeight('classlist');
-                    }
-                    break;
-                }
-                case 'delete-column': {
-                     if (confirm('Bạn có chắc muốn xóa cột này? Dữ liệu trong cột sẽ được giữ lại nhưng không hiển thị.')) {
-                        const key = button.dataset.key;
-                        appData.studentColumns = appData.studentColumns.filter(c => c.key !== key);
-                        updateAndSaveChanges();
-                        renderClassListSection();
-                        updateOpenAccordionHeight('classlist');
-                    }
-                    break;
-                }
+                case 'edit-classlist-spreadsheet': showClassListSpreadsheet(); break;
+                case 'edit-schedule-spreadsheet': showScheduleSpreadsheet(); break;
                 case 'add-media-url': showMediaForm(); break;
                 case 'edit-media': showMediaForm(id); break;
                 case 'delete-media':
                     if (confirm('Bạn có chắc muốn xóa mục này?')) {
                         appData.media = appData.media.filter(m => m.id !== id);
-                        updateAndSaveChanges();
-                        renderGallerySection();
-                        updateOpenAccordionHeight('gallery');
-                    }
-                    break;
+                        updateAndSaveChanges(); renderGallerySection();
+                    } break;
                 case 'toggle-select-mode':
                     isSelectionMode = !isSelectionMode;
-                    if (!isSelectionMode) {
-                        selectedMediaIds.clear();
-                    }
-                    renderGallerySection();
-                    break;
+                    if (!isSelectionMode) selectedMediaIds.clear();
+                    renderGallerySection(); break;
                 case 'toggle-select-media':
-                     if (id) {
-                         if (selectedMediaIds.has(id)) {
-                             selectedMediaIds.delete(id);
-                         } else {
-                             selectedMediaIds.add(id);
-                         }
-                         renderGallerySection();
-                     }
-                     break;
-                 case 'select-all-media':
-                    appData.media.forEach(item => selectedMediaIds.add(item.id));
-                    renderGallerySection();
-                    break;
-                case 'deselect-all-media':
-                    selectedMediaIds.clear();
-                    renderGallerySection();
-                    break;
+                     if (id) { selectedMediaIds.has(id) ? selectedMediaIds.delete(id) : selectedMediaIds.add(id); renderGallerySection(); } break;
+                 case 'select-all-media': appData.media.forEach(item => selectedMediaIds.add(item.id)); renderGallerySection(); break;
+                case 'deselect-all-media': selectedMediaIds.clear(); renderGallerySection(); break;
                  case 'delete-selected-media':
                     if (confirm(`Bạn có chắc muốn xóa ${selectedMediaIds.size} mục đã chọn?`)) {
                         appData.media = appData.media.filter(m => !selectedMediaIds.has(m.id));
-                        selectedMediaIds.clear();
-                        isSelectionMode = false;
-                        updateAndSaveChanges();
-                        renderGallerySection();
-                        updateOpenAccordionHeight('gallery');
-                    }
-                    break;
+                        selectedMediaIds.clear(); isSelectionMode = false;
+                        updateAndSaveChanges(); renderGallerySection();
+                    } break;
             }
         });
 
         modalContainer.addEventListener('click', (e) => {
-            if (e.target.id === 'modal-backdrop' || e.target.id === 'modal-close-btn' || e.target.closest('#modal-close-btn') || e.target.id === 'form-cancel-btn') {
+            const button = e.target.closest('button');
+            if (!button) return;
+            const action = button.dataset.action;
+            if (e.target.id === 'modal-backdrop' || e.target.id === 'modal-close-btn' || button.closest('#modal-close-btn') || action === 'modal-cancel') {
                 closeModal();
             }
         });
@@ -715,87 +552,47 @@ document.addEventListener('DOMContentLoaded', async () => {
             const form = e.target;
             const id = form.dataset.id;
 
-            if (form.id === 'student-form') {
-                 const studentData = id ? appData.students.find(s => s.id === id) : { id: crypto.randomUUID() };
-                 appData.studentColumns.forEach(col => {
-                     studentData[col.key] = form[col.key].value;
-                 });
-
-                if (id) {
-                    appData.students = appData.students.map(s => s.id === id ? studentData : s);
-                } else {
-                    appData.students.push(studentData);
-                }
-                updateAndSaveChanges();
-                renderClassListSection();
-                updateOpenAccordionHeight('classlist');
-                closeModal();
-            } else if (form.id === 'media-form') {
+            if (form.id === 'media-form') {
                 const url = form.url.value;
-                if (!url) {
-                    alert('Nguồn media không được để trống. Vui lòng dán link.');
-                    return;
-                }
+                if (!url) { alert('URL không được để trống.'); return; }
                 const updatedMedia = { id: id || crypto.randomUUID(), type: form.type.value, url: url, caption: form.caption.value };
                 if (id) { appData.media = appData.media.map(m => m.id === id ? updatedMedia : m); } else { appData.media.push(updatedMedia); }
-                updateAndSaveChanges();
-                renderGallerySection();
-                updateOpenAccordionHeight('gallery');
-                closeModal();
+                updateAndSaveChanges(); renderGallerySection(); closeModal();
             } else if (form.id === 'change-password-form') {
-                const currentPassword = form.currentPassword.value;
-                const newPassword = form.newPassword.value;
-                const confirmNewPassword = form.confirmNewPassword.value;
+                const { currentPassword, newPassword, confirmNewPassword } = form;
                 const errorEl = document.getElementById('change-pass-error');
                 const successEl = document.getElementById('change-pass-success');
-                const submitBtn = form.querySelector('button[type="submit"]');
                 errorEl.textContent = ''; successEl.textContent = '';
 
-                if (newPassword !== confirmNewPassword) { errorEl.textContent = 'Mật khẩu mới không khớp.'; return; }
-                if (newPassword.length < 6) { errorEl.textContent = 'Mật khẩu mới phải có ít nhất 6 ký tự.'; return; }
+                if (newPassword.value !== confirmNewPassword.value) { errorEl.textContent = 'Mật khẩu mới không khớp.'; return; }
+                if (newPassword.value.length < 6) { errorEl.textContent = 'Mật khẩu mới phải có ít nhất 6 ký tự.'; return; }
                 
-                const currentPasswordHash = await hashPassword(currentPassword);
+                const currentPasswordHash = await hashPassword(currentPassword.value);
                 if (currentPasswordHash !== sessionAuthToken) { errorEl.textContent = 'Mật khẩu hiện tại không đúng.'; return; }
                 
-                const newPasswordHash = await hashPassword(newPassword);
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Đang lưu...';
+                const newPasswordHash = await hashPassword(newPassword.value);
+                form.querySelector('button[type="submit"]').disabled = true;
 
                 const result = await updatePasswordOnKV({ currentPasswordHash, newPasswordHash });
 
                 if (result.success) {
                     sessionAuthToken = newPasswordHash;
                     successEl.textContent = 'Mật khẩu đã được thay đổi! Cửa sổ sẽ đóng sau 3 giây.';
-                    setTimeout(() => closeModal(), 3000);
+                    setTimeout(closeModal, 3000);
                 } else {
                     errorEl.textContent = `Lỗi: ${result.message}`;
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Lưu thay đổi';
+                    form.querySelector('button[type="submit"]').disabled = false;
                 }
             }
         });
 
         authContainer.innerHTML = `<div class="flex items-center justify-center h-screen">Đang kết nối đến máy chủ xác thực...</div>`;
         const storedHash = await fetchPasswordHash();
-        if (storedHash) {
-            renderAuthForm(storedHash);
-        } else {
-            authContainer.innerHTML = `<div class="flex items-center justify-center h-screen text-red-500 p-4 text-center">Không thể lấy thông tin xác thực từ máy chủ. Vui lòng kiểm tra lại cấu hình Worker và kết nối mạng.</div>`;
-        }
+        if (storedHash) renderAuthForm(storedHash);
+        else authContainer.innerHTML = `<div class="flex items-center justify-center h-screen text-red-500 p-4 text-center">Không thể lấy thông tin xác thực. Vui lòng kiểm tra cấu hình Worker và kết nối mạng.</div>`;
 
     } catch (error) {
-        console.error("Lỗi nghiêm trọng khi khởi tạo trang chỉnh sửa:", error);
-        document.body.innerHTML = `
-            <div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
-                <div class="max-w-lg w-full bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8">
-                    <h1 class="text-2xl font-bold text-red-600 dark:text-red-400 text-center">Đã xảy ra lỗi nghiêm trọng</h1>
-                    <p class="mt-2 text-center text-gray-600 dark:text-gray-300">Trang chỉnh sửa không thể tải. Vui lòng thử làm mới trang hoặc liên hệ quản trị viên.</p>
-                    <div class="mt-4 text-left bg-gray-100 dark:bg-gray-900 p-4 rounded-md font-mono text-sm text-red-500 dark:text-red-300 overflow-auto">
-                        <p class="font-semibold">Thông tin lỗi:</p>
-                        <pre class="mt-1 whitespace-pre-wrap">${error.stack || error.message}</pre>
-                    </div>
-                </div>
-            </div>
-        `;
+        console.error("Lỗi nghiêm trọng khi khởi tạo:", error);
+        document.body.innerHTML = `<div class="min-h-screen flex items-center justify-center bg-gray-100 p-4"><div class="max-w-lg w-full bg-white p-8 rounded-2xl shadow-xl"><h1 class="text-2xl font-bold text-red-600 text-center">Đã xảy ra lỗi nghiêm trọng</h1><p class="mt-2 text-center text-gray-600">Trang chỉnh sửa không thể tải. Vui lòng thử làm mới trang.</p><pre class="mt-4 bg-gray-100 p-4 rounded-md font-mono text-sm text-red-500 overflow-auto">${error.stack || error.message}</pre></div></div>`;
     }
 });
