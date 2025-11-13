@@ -1,4 +1,4 @@
-// v3.0 - The Spreadsheet Experience
+// v3.1 - The Accordion & Progress Update
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
@@ -8,6 +8,7 @@ let sessionAuthToken = null;
 // Module-scoped state
 let isSelectionMode = false;
 let selectedMediaIds = new Set();
+let openAccordionId = 'gallery-section'; // First section is open by default
 
 // Module-scoped DOM elements
 let authContainer;
@@ -110,8 +111,67 @@ function updateAndSaveChanges() {
     updateSyncState({ status: 'dirty' });
 }
 
+function toggleAccordion(sectionId) {
+    const currentlyOpenHeader = document.querySelector('.accordion-header.open');
+    const currentlyOpenContent = document.querySelector('.accordion-content.open');
+
+    if (currentlyOpenHeader && currentlyOpenHeader.dataset.accordionId !== sectionId) {
+        currentlyOpenHeader.classList.remove('open');
+        currentlyOpenContent.classList.remove('open');
+        updateOpenAccordionHeight();
+    }
+    
+    const newHeader = document.querySelector(`.accordion-header[data-accordion-id="${sectionId}"]`);
+    const newContent = document.getElementById(`${sectionId}-content`);
+
+    if (newHeader && newContent) {
+        newHeader.classList.toggle('open');
+        newContent.classList.toggle('open');
+        openAccordionId = newHeader.classList.contains('open') ? sectionId : null;
+    }
+    updateOpenAccordionHeight();
+}
+
+function updateOpenAccordionHeight() {
+    // This is a helper to ensure that if content *inside* an open accordion changes size
+    // (e.g. adding a student row), the accordion's max-height is recalculated.
+    // In our simple open/close case, toggling the class is enough, but this is good practice.
+    const openContent = document.querySelector('.accordion-content.open');
+    if (openContent) {
+        // No specific action needed with pure CSS transition, but would be useful for JS animation
+    }
+}
+
 function renderEditPage() {
     if (!appData) return;
+
+    const sections = [
+        { id: 'gallery-section', title: 'Quản lý Thư viện', icon: icons.gallery },
+        { id: 'classlist-section', title: 'Quản lý Danh sách Lớp', icon: icons.users },
+        { id: 'schedule-section', title: 'Quản lý Thời khóa biểu', icon: icons.calendar }
+    ];
+
+    const accordionHTML = sections.map(section => `
+        <div class="accordion-item bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden transition-all duration-300">
+            <h2 id="${section.id}-header">
+                <button type="button" data-action="toggle-accordion" data-accordion-id="${section.id}"
+                    class="accordion-header flex items-center justify-between w-full p-5 font-medium text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
+                    <span class="flex items-center gap-3 text-xl">
+                        ${section.icon}
+                        ${section.title}
+                    </span>
+                    <span class="accordion-icon">
+                        ${icons.chevronDown}
+                    </span>
+                </button>
+            </h2>
+            <div id="${section.id}-content" class="accordion-content">
+                <div class="p-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
+                     <!-- Content will be injected here -->
+                </div>
+            </div>
+        </div>
+    `).join('');
 
     editContainer.innerHTML = `
         <div class="min-h-screen bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 lg:p-8">
@@ -142,21 +202,7 @@ function renderEditPage() {
                         </div>
                     </section>
                     
-                    <div class="space-y-8">
-                        <section id="gallery-section" class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 space-y-4">
-                             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Thư viện</h2>
-                             <div id="gallery-actions" class="flex flex-wrap items-center gap-4"></div>
-                             <div id="gallery-container"></div>
-                        </section>
-                        <section id="classlist-section" class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 space-y-4">
-                             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Danh sách Lớp</h2>
-                             <div id="classlist-container"></div>
-                        </section>
-                        <section id="schedule-section" class="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 space-y-4">
-                             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Quản lý Thời khóa biểu</h2>
-                             <div id="schedule-container"></div>
-                        </section>
-                    </div>
+                    <div class="space-y-4">${accordionHTML}</div>
 
                 </main>
                 <footer class="text-center mt-12 text-gray-500 dark:text-gray-400">
@@ -167,6 +213,14 @@ function renderEditPage() {
         </div>
     `;
     renderAllSections();
+    
+    // Set initial state for accordion
+    if (openAccordionId) {
+        const header = document.querySelector(`.accordion-header[data-accordion-id="${openAccordionId}"]`);
+        const content = document.getElementById(`${openAccordionId}-content`);
+        if(header) header.classList.add('open');
+        if(content) content.classList.add('open');
+    }
     
     document.getElementById('sync-kv-btn').addEventListener('click', handleSync);
     document.getElementById('change-password-btn').addEventListener('click', showChangePasswordForm);
@@ -181,8 +235,17 @@ function renderAllSections() {
 }
 
 function renderGallerySection() {
-    const container = document.getElementById('gallery-container');
+    const contentWrapper = document.querySelector('#gallery-section-content > div');
+    if (!contentWrapper) return;
+    
+    contentWrapper.innerHTML = `
+        <div id="gallery-actions" class="flex flex-wrap items-center gap-4"></div>
+        <div id="upload-progress-container" class="hidden"></div>
+        <div id="gallery-container"></div>
+    `;
+    
     const actionsContainer = document.getElementById('gallery-actions');
+    const container = document.getElementById('gallery-container');
     
     let actionsHTML = `
         <label class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 cursor-pointer">
@@ -205,17 +268,19 @@ function renderGallerySection() {
     }
     actionsContainer.innerHTML = actionsHTML;
 
-    container.innerHTML = renderGallery(appData.media, { isEditing: true, isSelectionMode, selectedIds: selectedMediaIds }).replace(/<h2.*?>.*?<\/h2>/, ''); // Remove the title
+    container.innerHTML = renderGallery(appData.media, { isEditing: true, isSelectionMode, selectedIds: selectedMediaIds });
 }
 
 function renderClassListSection() {
-    const container = document.getElementById('classlist-container');
-    container.innerHTML = renderClassList(appData.students, appData.studentColumns, { isEditing: true }).replace(/<h2.*?>.*?<\/h2>/, '');
+    const contentWrapper = document.querySelector('#classlist-section-content > div');
+    if (!contentWrapper) return;
+    contentWrapper.innerHTML = renderClassList(appData.students, appData.studentColumns, { isEditing: true });
 }
 
 function renderScheduleSection() {
-    const container = document.getElementById('schedule-container');
-    container.innerHTML = renderSchedule(appData.schedule, true).replace(/<h2.*?>.*?<\/h2>/, '');
+    const contentWrapper = document.querySelector('#schedule-section-content > div');
+    if (!contentWrapper) return;
+    contentWrapper.innerHTML = renderSchedule(appData.schedule, true);
 }
 
 async function showEditPage() {
@@ -452,6 +517,62 @@ function showChangePasswordForm() {
     openModal(title, formHTML, 'max-w-lg');
 }
 
+
+function readFileAsDataURLWithProgress(file, progressCallback) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.onprogress = (event) => {
+            if (event.lengthComputable) {
+                const percentLoaded = Math.round((event.loaded / event.total) * 100);
+                progressCallback(percentLoaded);
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+async function handleFileUploads(files) {
+    const progressContainer = document.getElementById('upload-progress-container');
+    if (!progressContainer) return;
+    
+    progressContainer.innerHTML = `
+        <div class="mt-4 space-y-2">
+            <p id="progress-text" class="text-sm font-medium text-gray-700 dark:text-gray-300"></p>
+            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                <div id="progress-bar" class="bg-teal-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+    `;
+    progressContainer.classList.remove('hidden');
+
+    const progressText = document.getElementById('progress-text');
+    const progressBar = document.getElementById('progress-bar');
+    
+    let fileIndex = 0;
+    for (const file of files) {
+        fileIndex++;
+        progressText.textContent = `Đang xử lý tệp ${fileIndex}/${files.length}: ${file.name}...`;
+        progressBar.style.width = '0%';
+
+        try {
+            const url = await readFileAsDataURLWithProgress(file, (percent) => {
+                progressBar.style.width = `${percent}%`;
+            });
+            const type = file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : 'audio';
+            appData.media.push({ id: crypto.randomUUID(), type, url, caption: file.name });
+        } catch (error) {
+            console.error(`Lỗi khi đọc tệp ${file.name}:`, error);
+            // Optionally, show an error message for this file
+        }
+    }
+    
+    progressContainer.classList.add('hidden');
+    updateAndSaveChanges();
+    renderGallerySection();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         authContainer = document.getElementById('auth-container');
@@ -468,18 +589,8 @@ document.addEventListener('DOMContentLoaded', async () => {
              if (action === 'upload-multi-media') {
                  const files = target.files;
                  if (!files.length) return;
-                 
-                 Array.from(files).forEach(file => {
-                     const reader = new FileReader();
-                     reader.onload = (e) => {
-                         const type = file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : 'audio';
-                         appData.media.push({ id: crypto.randomUUID(), type, url: e.target.result, caption: file.name });
-                         updateAndSaveChanges();
-                         renderGallerySection();
-                     };
-                     reader.readAsDataURL(file);
-                 });
-                 target.value = '';
+                 handleFileUploads(files);
+                 target.value = ''; // Reset input to allow re-uploading the same file
              }
         });
         
@@ -518,6 +629,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const id = e.target.closest('[data-id]')?.dataset.id;
             
             switch (action) {
+                case 'toggle-accordion': toggleAccordion(button.dataset.accordionId); break;
                 case 'edit-classlist-spreadsheet': showClassListSpreadsheet(); break;
                 case 'edit-schedule-spreadsheet': showScheduleSpreadsheet(); break;
                 case 'add-media-url': showMediaForm(); break;

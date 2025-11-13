@@ -18,6 +18,26 @@
       #auth-container, #edit-container { min-height: 100vh; }
       /* jspreadsheet dark theme adjustments */
       .jss-dark { --jss-main-bg-color: #1f2937; --jss-main-font-color: #f3f4f6; --jss-border-color: #4b5563; --jss-header-bg-color: #374151; }
+      
+      /* Accordion Styles */
+      .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.5s cubic-bezier(0, 1, 0, 1);
+      }
+      .accordion-content.open {
+        max-height: 5000px; /* Large enough value to not clip content */
+        transition: max-height 1s ease-in-out;
+      }
+      .accordion-header .accordion-icon {
+        transition: transform 0.3s ease;
+      }
+      .accordion-header.open .accordion-icon {
+        transform: rotate(180deg);
+      }
+      #upload-progress-container {
+        transition: opacity 0.3s ease;
+      }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">

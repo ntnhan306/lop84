@@ -44,16 +44,23 @@ export function renderGallery(media, { isEditing = false, isSelectionMode = fals
 
             switch (item.type) {
                 case 'video':
-                    mediaElement = `<video src="${item.url}" class="w-full h-full object-cover" preload="metadata"></video>`;
-                    mediaIcon = icons.video;
+                    mediaElement = `<video src="${item.url}" class="w-full h-full object-cover" preload="metadata" ${!isEditing ? 'controls' : ''}></video>`;
+                    if (isEditing) mediaIcon = icons.video;
                     break;
                 case 'audio':
-                    mediaElement = `<audio src="${item.url}" class="w-full h-full object-cover hidden" preload="metadata"></audio><div class="w-full h-full bg-gray-800 flex items-center justify-center">${icons.audio.replace('h-6 w-6', 'h-16 w-16')}</div>`;
-                    mediaIcon = icons.audio;
+                     if (!isEditing) {
+                        mediaElement = `<div class="w-full h-full bg-gray-800 flex flex-col items-center justify-center p-2">
+                            ${icons.audio.replace('class="h-6 w-6 text-white"', 'class="h-10 w-10 text-gray-300"')}
+                            <audio src="${item.url}" controls class="w-full mt-4"></audio>
+                        </div>`;
+                    } else {
+                        mediaElement = `<div class="w-full h-full bg-gray-800 flex items-center justify-center">${icons.audio.replace('h-6 w-6', 'h-16 w-16')}</div>`;
+                        mediaIcon = icons.audio;
+                    }
                     break;
                 default: // image
-                    mediaElement = `<img src="${item.url}" alt="${item.caption || 'Gallery image'}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 cursor-pointer" />`;
-                    containerAttributes = `data-lightbox-item="true" data-src="${item.url}"`;
+                    mediaElement = `<img src="${item.url}" alt="${item.caption || 'Gallery image'}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ${!isEditing ? 'cursor-pointer' : ''}" />`;
+                    if (!isEditing) containerAttributes = `data-lightbox-item="true" data-src="${item.url}"`;
                     break;
             }
             
@@ -90,6 +97,10 @@ export function renderGallery(media, { isEditing = false, isSelectionMode = fals
         content = `<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">${items}</div>`;
     }
     
+    if (isEditing) {
+        return content;
+    }
+
     return `
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
         <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Thư viện Media</h2>
@@ -167,12 +178,13 @@ function renderClassListTable(students, columns) {
         </div>`;
 }
 
-export function renderClassList(students, columns, { isEditing = false } = {}) {
-    let content;
+
+function renderClassListContent(students, columns, isEditing) {
+    const tableContent = renderClassListTable(students, columns);
     if (isEditing) {
-        content = `
+        return `
             <div id="classlist-preview-container" class="mb-4">
-                ${renderClassListTable(students, columns)}
+                ${tableContent}
             </div>
             <div class="flex justify-end">
                 <button data-action="edit-classlist-spreadsheet" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600">
@@ -180,8 +192,16 @@ export function renderClassList(students, columns, { isEditing = false } = {}) {
                 </button>
             </div>
         `;
-    } else {
-        content = renderClassListTable(students, columns, { isEditing: false });
+    }
+    return tableContent;
+}
+
+
+export function renderClassList(students, columns, { isEditing = false } = {}) {
+    const content = renderClassListContent(students, columns, isEditing);
+
+    if (isEditing) {
+        return content;
     }
 
     return `
@@ -226,22 +246,34 @@ function renderScheduleTable(schedule) {
 }
 
 
-export function renderSchedule(schedule, isEditing = false) {
-    let content = renderScheduleTable(schedule);
+function renderScheduleContent(schedule, isEditing) {
+    const tableContent = renderScheduleTable(schedule);
+     if (isEditing) {
+        return `
+            <div id="schedule-preview-container">
+                ${tableContent}
+            </div>
+            <div class="flex justify-end mt-4">
+                <button data-action="edit-schedule-spreadsheet" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600">
+                    ${icons.spreadsheet}<span>Chỉnh sửa Bảng</span>
+                </button>
+            </div>
+        `;
+    }
+    return tableContent;
+}
 
+export function renderSchedule(schedule, isEditing = false) {
+    const content = renderScheduleContent(schedule, isEditing);
+    
+    if (isEditing) {
+        return content;
+    }
+    
     return `
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Thời khóa biểu</h2>
-            <div id="schedule-preview-container">
-                ${content}
-            </div>
-            ${isEditing ? `
-                <div class="flex justify-end mt-4">
-                    <button data-action="edit-schedule-spreadsheet" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600">
-                        ${icons.spreadsheet}<span>Chỉnh sửa Bảng</span>
-                    </button>
-                </div>
-            ` : ''}
+            ${content}
         </div>
     `;
 }
