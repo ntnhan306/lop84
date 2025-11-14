@@ -114,6 +114,7 @@ function renderGallerySection() {
     const contentWrapper = document.querySelector('#gallery-section-content > div');
     if (!contentWrapper) return;
     contentWrapper.innerHTML = `
+        <div id="gallery-alerts"></div>
         <div id="gallery-actions" class="flex flex-wrap items-center gap-4"></div>
         <div id="upload-progress-container" class="hidden"></div>
         <div id="gallery-container"></div>`;
@@ -208,13 +209,14 @@ async function handleSync() {
         updateSyncState({ status: 'error', message: 'Lỗi xác thực. Vui lòng đăng nhập lại.' });
         isSyncing = false; return;
     }
-    const dataToSync = getAppDataFromStorage();
+    const dataToSync = appData;
     if (!dataToSync) {
         updateSyncState({ status: 'error', message: 'Lỗi: Không tìm thấy dữ liệu để đồng bộ.' });
         isSyncing = false; return;
     }
     const result = await saveAppData(dataToSync, sessionAuthToken);
     if (result.success) {
+        saveAppDataToStorage(appData);
         updateSyncState({ status: 'synced', message: result.message });
     } else {
         updateSyncState({ status: 'error', message: result.message });
@@ -266,6 +268,34 @@ function readFileAsDataURL(file) {
     });
 }
 
+function displayAlert(containerId, message, type = 'error') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    let bgColor, textColor, icon;
+    if (type === 'error') {
+        bgColor = 'bg-red-100 dark:bg-red-900/30 border-red-500';
+        textColor = 'text-red-700 dark:text-red-300';
+        icon = icons.error;
+    } else { // 'warning' or other types can be added
+        bgColor = 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-500';
+        textColor = 'text-yellow-700 dark:text-yellow-300';
+        icon = icons.warning;
+    }
+
+    const alertHTML = `
+        <div class="alert-item flex items-start gap-4 p-4 rounded-lg border-l-4 ${bgColor} ${textColor} my-4">
+            <div>${icon}</div>
+            <div class="flex-grow text-sm">${message}</div>
+            <button type="button" class="ml-auto -mx-1.5 -my-1.5" onclick="this.parentElement.remove()">
+                <span class="sr-only">Dismiss</span>
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+            </button>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', alertHTML);
+}
+
 async function handleFileUploads(files) {
     const progressContainer = document.getElementById('upload-progress-container');
     if (!progressContainer) return;
@@ -281,13 +311,21 @@ async function handleFileUploads(files) {
 
     const progressText = document.getElementById('progress-text');
     const progressBar = document.getElementById('progress-bar');
+    const MAX_FILE_SIZE_MB = 10;
+    const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
     let filesProcessed = 0;
+    const failedFiles = [];
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const currentFileText = `Đang xử lý tệp ${i + 1}/${files.length}: ${file.name}...`;
         progressText.textContent = currentFileText;
         progressBar.style.width = `${((i) / files.length) * 100}%`;
+
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            failedFiles.push({ name: file.name, reason: `Vượt quá giới hạn ${MAX_FILE_SIZE_MB}MB` });
+            continue; // Skip this file
+        }
 
         try {
             const url = await readFileAsDataURL(file);
@@ -296,21 +334,27 @@ async function handleFileUploads(files) {
             appData.media.push(newMedia);
             filesProcessed++;
         } catch (error) {
+            failedFiles.push({ name: file.name, reason: 'Lỗi khi đọc tệp' });
             console.error(`Lỗi khi đọc tệp ${file.name}:`, error);
         }
         progressBar.style.width = `${((i + 1) / files.length) * 100}%`;
     }
 
     if (filesProcessed > 0) {
-        saveAppDataToStorage(appData);
         markAsDirty();
     }
 
-    progressText.textContent = `Hoàn tất! Đã thêm ${filesProcessed}/${files.length} tệp. Nhấn "Lưu và Đồng bộ" để lưu thay đổi.`;
+    if (failedFiles.length > 0) {
+        const errorMessage = `<strong>Không thể xử lý ${failedFiles.length} tệp do quá lớn.</strong> Giới hạn cho mỗi tệp là ${MAX_FILE_SIZE_MB}MB. <br>Tệp bị từ chối: ${failedFiles.map(f => f.name).join(', ')}`;
+        displayAlert('gallery-alerts', errorMessage, 'error');
+    }
+
+    progressText.textContent = `Hoàn tất! Đã thêm ${filesProcessed}/${files.length} tệp. ${failedFiles.length > 0 ? `${failedFiles.length} tệp bị từ chối.` : ''} Vui lòng "Lưu và Đồng bộ".`;
+    
     setTimeout(() => {
         progressContainer.classList.add('hidden');
         progressContainer.innerHTML = '';
-    }, 3000);
+    }, 8000);
 
     renderGallerySection();
 }
