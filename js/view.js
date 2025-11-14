@@ -4,7 +4,7 @@ import { renderGallery, renderClassList, renderSchedule, icons, openLightbox } f
 // --- State Management ---
 let appData = null;
 let currentView = 'gallery'; // Default view
-const POLLING_INTERVAL = 5000; // 5 seconds
+const POLLING_INTERVAL = 10; // 5 seconds
 const INACTIVE_POLLING_INTERVAL = 30000; // 30 seconds
 let currentPollingInterval = POLLING_INTERVAL;
 let pollTimeoutId = null;
