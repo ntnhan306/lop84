@@ -281,42 +281,37 @@ async function handleFileUploads(files) {
 
     const progressText = document.getElementById('progress-text');
     const progressBar = document.getElementById('progress-bar');
+    let filesProcessed = 0;
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const currentFileText = `Đang xử lý tệp ${i + 1}/${files.length}: ${file.name}...`;
         progressText.textContent = currentFileText;
-        progressBar.style.width = `${((i + 1) / files.length) * 100}%`;
+        progressBar.style.width = `${((i) / files.length) * 100}%`;
 
         try {
             const url = await readFileAsDataURL(file);
             const type = file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : 'audio';
             const newMedia = { id: crypto.randomUUID(), type, url, caption: file.name };
-
             appData.media.push(newMedia);
-            saveAppDataToStorage(appData);
-            
-            updateSyncState({ status: 'syncing', message: `Đang đồng bộ: ${file.name}` });
-            const result = await saveAppData(appData, sessionAuthToken);
-
-            if (!result.success) {
-                updateSyncState({ status: 'error', message: `Đồng bộ ${file.name} thất bại. Các tệp còn lại đã bị hủy. Vui lòng thử đồng bộ lại.` });
-                isDirty = true;
-                progressContainer.classList.add('hidden');
-                renderGallerySection();
-                return;
-            }
-
+            filesProcessed++;
         } catch (error) {
             console.error(`Lỗi khi đọc tệp ${file.name}:`, error);
-            updateSyncState({ status: 'error', message: `Lỗi đọc tệp ${file.name}. Đã bỏ qua.` });
         }
+        progressBar.style.width = `${((i + 1) / files.length) * 100}%`;
     }
-    
-    progressText.textContent = `Hoàn tất! Đã tải lên và đồng bộ ${files.length} tệp.`;
-    setTimeout(() => progressContainer.classList.add('hidden'), 2000);
-    
-    updateSyncState({ status: 'synced', message: `Đã đồng bộ thành công ${files.length} tệp.` });
+
+    if (filesProcessed > 0) {
+        saveAppDataToStorage(appData);
+        markAsDirty();
+    }
+
+    progressText.textContent = `Hoàn tất! Đã thêm ${filesProcessed}/${files.length} tệp. Nhấn "Lưu và Đồng bộ" để lưu thay đổi.`;
+    setTimeout(() => {
+        progressContainer.classList.add('hidden');
+        progressContainer.innerHTML = '';
+    }, 3000);
+
     renderGallerySection();
 }
 
@@ -356,13 +351,16 @@ function openModal({ title, contentHTML, size = 'max-w-4xl', onOpened = null }) 
     const backdrop = document.getElementById('modal-backdrop');
     const modalBox = document.getElementById('modal-box');
     
+    // Add event listener BEFORE starting the animation
+    if (onOpened) {
+        modalBox.addEventListener('transitionend', onOpened, { once: true });
+    }
+
+    // Start the animation
     requestAnimationFrame(() => {
         backdrop.style.opacity = '1';
         modalBox.style.opacity = '1';
         modalBox.style.transform = 'scale(1)';
-        if (onOpened) {
-            requestAnimationFrame(onOpened);
-        }
     });
 }
 
@@ -445,13 +443,14 @@ function showClassListSpreadsheet() {
 
             const newStudents = dataToSave
                 .map((row, rowIndex) => {
+                    if (row.every(cell => cell === null || cell === '')) return null; // Skip empty rows
                     const student = { id: (appData.students[rowIndex] && appData.students[rowIndex].id) || crypto.randomUUID() };
                     newColumns.forEach((col, colIndex) => {
-                        student[col.key] = row[col.data];
+                        student[col.key] = row[colIndex];
                     });
                     return student;
                 })
-                .filter(student => Object.values(student).some(val => val !== null && val !== '' && val !== undefined)); // Filter out completely empty rows
+                .filter(Boolean);
 
             appData.studentColumns = newColumns;
             appData.students = newStudents;
