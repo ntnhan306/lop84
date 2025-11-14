@@ -1,5 +1,5 @@
 {
   "name": "Lớp 8/4 - Trang thông tin",
-  "description": "Phiên bản 3.0: Trang thông tin với giao diện hiện đại và trải nghiệm chỉnh sửa kiểu bảng tính mạnh mẽ. Tận dụng Cloudflare D1 cho phép lưu trữ media dung lượng lớn và quản lý dữ liệu linh hoạt.",
+  "description": "Phiên bản 4.0: Nền tảng ổn định với logic upload và đồng bộ được thiết kế lại hoàn toàn, đảm bảo độ tin cậy. Giao diện được nâng cấp với icon mới và các tối ưu hóa về hiệu suất.",
   "requestFramePermissions": []
 }

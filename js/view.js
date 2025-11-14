@@ -4,7 +4,9 @@ import { renderGallery, renderClassList, renderSchedule, icons, openLightbox } f
 // --- State Management ---
 let appData = null;
 let currentView = 'gallery'; // Default view
-const POLLING_INTERVAL = 5000;
+const POLLING_INTERVAL = 5000; // 5 seconds
+const INACTIVE_POLLING_INTERVAL = 30000; // 30 seconds
+let currentPollingInterval = POLLING_INTERVAL;
 let pollTimeoutId = null;
 let isFirstLoad = true;
 let lastConnectionStatus = '';
@@ -78,8 +80,14 @@ function setActiveView(viewName) {
     renderActiveView();
 }
 
-async function pollForData() {
+async function pollForData(force = false) {
     if (pollTimeoutId) clearTimeout(pollTimeoutId);
+    
+    // If the page is not visible and we are not forcing a poll, schedule the next one and exit
+    if (document.hidden && !force) {
+        pollTimeoutId = setTimeout(pollForData, currentPollingInterval);
+        return;
+    }
 
     try {
         if (isFirstLoad) {
@@ -119,7 +127,19 @@ async function pollForData() {
             `;
         }
     } finally {
-        pollTimeoutId = setTimeout(pollForData, POLLING_INTERVAL);
+        pollTimeoutId = setTimeout(pollForData, currentPollingInterval);
+    }
+}
+
+
+function handleVisibilityChange() {
+    if (document.hidden) {
+        // Tab is inactive, slow down polling
+        currentPollingInterval = INACTIVE_POLLING_INTERVAL;
+    } else {
+        // Tab is active, speed up polling and poll immediately
+        currentPollingInterval = POLLING_INTERVAL;
+        pollForData(true); // Force an immediate poll
     }
 }
 
@@ -151,6 +171,9 @@ async function init() {
             openLightbox(lightboxTrigger.dataset.src);
         }
     });
+    
+    // Listen for tab visibility changes to optimize polling
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     
     setActiveView(currentView); // Set initial active tab style
     pollForData();
