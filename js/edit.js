@@ -7,6 +7,7 @@ let appData = null;
 let sessionAuthToken = null;
 let isDirty = false; // Tracks if there are unsaved changes
 let isSyncing = false;
+let handsontableInstance = null; // To hold the table instance
 
 // --- UI State ---
 let isSelectionMode = false;
@@ -285,30 +286,25 @@ async function handleFileUploads(files) {
         const file = files[i];
         const currentFileText = `Đang xử lý tệp ${i + 1}/${files.length}: ${file.name}...`;
         progressText.textContent = currentFileText;
-        progressBar.style.width = `${(i / files.length) * 100}%`;
+        progressBar.style.width = `${((i + 1) / files.length) * 100}%`;
 
         try {
             const url = await readFileAsDataURL(file);
             const type = file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : 'audio';
             const newMedia = { id: crypto.randomUUID(), type, url, caption: file.name };
 
-            // Add to local state and save to storage
             appData.media.push(newMedia);
             saveAppDataToStorage(appData);
             
-            // Re-render gallery to show new item immediately
-            renderGallerySection();
-
-            // Sync this single change to the server
             updateSyncState({ status: 'syncing', message: `Đang đồng bộ: ${file.name}` });
             const result = await saveAppData(appData, sessionAuthToken);
 
             if (!result.success) {
-                // If sync fails, show an error and stop. The data is still saved locally.
                 updateSyncState({ status: 'error', message: `Đồng bộ ${file.name} thất bại. Các tệp còn lại đã bị hủy. Vui lòng thử đồng bộ lại.` });
-                isDirty = true; // Mark as dirty since the last operation failed
+                isDirty = true;
                 progressContainer.classList.add('hidden');
-                return; // Stop processing further files
+                renderGallerySection();
+                return;
             }
 
         } catch (error) {
@@ -317,7 +313,6 @@ async function handleFileUploads(files) {
         }
     }
     
-    progressBar.style.width = '100%';
     progressText.textContent = `Hoàn tất! Đã tải lên và đồng bộ ${files.length} tệp.`;
     setTimeout(() => progressContainer.classList.add('hidden'), 2000);
     
@@ -366,13 +361,16 @@ function openModal({ title, contentHTML, size = 'max-w-4xl', onOpened = null }) 
         modalBox.style.opacity = '1';
         modalBox.style.transform = 'scale(1)';
         if (onOpened) {
-            // Use another rAF to ensure the CSS transitions have started and the element is painted.
-            requestAnimationFrame(() => requestAnimationFrame(onOpened));
+            requestAnimationFrame(onOpened);
         }
     });
 }
 
 function closeModal() {
+    if (handsontableInstance) {
+        handsontableInstance.destroy();
+        handsontableInstance = null;
+    }
     const backdrop = document.getElementById('modal-backdrop');
     if (backdrop) {
         backdrop.style.opacity = '0';
@@ -387,23 +385,81 @@ function showClassListSpreadsheet() {
             <button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button>
             <button type="button" data-action="modal-save" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu và Đóng</button>
         </div>`;
+
     openModal({ title: 'Chỉnh sửa Danh sách Lớp', size: 'max-w-7xl', contentHTML, onOpened: () => {
         const spreadsheetEl = document.getElementById('spreadsheet-container');
         if (!spreadsheetEl) return;
-        const columns = appData.studentColumns.map(col => ({ type: 'text', title: col.label, width: col.key === 'name' ? 250 : 150, name: col.key, readOnly: col.readonly || false }));
-        const data = appData.students.map(student => { const row = {}; appData.studentColumns.forEach(col => { row[col.key] = student[col.key] || ''; }); return row; });
-        const spreadsheet = jspreadsheet(spreadsheetEl, { data, columns, allowInsertRow: true, allowInsertColumn: true, allowDeleteRow: true, allowDeleteColumn: true, allowRenameColumn: true, columnDrag: true, rowDrag: true, license: 'CE' });
-        dom.modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
-            const newData = spreadsheet.getData(false, true); // Get formatted data
-            const newHeaders = spreadsheet.getHeaders(true);
-            const originalKeys = spreadsheet.options.columns.map(c => c.name);
-            appData.studentColumns = newHeaders.map((label, index) => ({ key: originalKeys[index], label }));
-            appData.students = newData.map((row, rowIndex) => {
-                const student = { id: appData.students[rowIndex]?.id || crypto.randomUUID() };
-                appData.studentColumns.forEach(col => { student[col.key] = row[col.key]; });
-                return student;
+
+        const data = appData.students.map(student => {
+            const row = {};
+            appData.studentColumns.forEach(col => {
+                row[col.key] = student[col.key] || '';
             });
-            saveAppDataToStorage(appData); markAsDirty(); renderClassListSection(); closeModal();
+            return row;
+        });
+
+        const columns = appData.studentColumns.map(col => ({
+            data: col.key,
+            title: col.label,
+            readOnly: col.readonly || false
+        }));
+
+        if (document.documentElement.classList.contains('dark')) {
+            spreadsheetEl.classList.add('htDark');
+        }
+
+        handsontableInstance = new Handsontable(spreadsheetEl, {
+            data: data,
+            columns: columns,
+            colHeaders: appData.studentColumns.map(c => c.label),
+            rowHeaders: true,
+            manualColumnMove: true,
+            manualColumnResize: true,
+            manualRowMove: true,
+            manualRowResize: true,
+            contextMenu: true,
+            dropdownMenu: true,
+            filters: true,
+            allowInsertColumn: true,
+            allowRemoveColumn: true,
+            allowInsertRow: true,
+            allowRemoveRow: true,
+            width: '100%',
+            height: '100%',
+            licenseKey: 'non-commercial-and-evaluation'
+        });
+
+        dom.modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
+            const hot = handsontableInstance;
+            const newHeaders = hot.getColHeader();
+            const dataToSave = hot.getSourceDataArray();
+
+            const slugify = (str) => str.toLowerCase().replace(/\s+/g, '_').replace(/[^\w-]+/g, '');
+
+            // Create new columns definition, preserving old keys if labels match
+            const oldLabelToKeyMap = new Map(appData.studentColumns.map(c => [c.label, c.key]));
+            const newColumns = newHeaders.map(label => ({
+                key: oldLabelToKeyMap.get(label) || (slugify(label) + '_' + crypto.randomUUID().slice(0, 4)),
+                label: label
+            }));
+
+            const newStudents = dataToSave
+                .map((row, rowIndex) => {
+                    const student = { id: (appData.students[rowIndex] && appData.students[rowIndex].id) || crypto.randomUUID() };
+                    newColumns.forEach((col, colIndex) => {
+                        student[col.key] = row[col.data];
+                    });
+                    return student;
+                })
+                .filter(student => Object.values(student).some(val => val !== null && val !== '' && val !== undefined)); // Filter out completely empty rows
+
+            appData.studentColumns = newColumns;
+            appData.students = newStudents;
+
+            saveAppDataToStorage(appData);
+            markAsDirty();
+            renderClassListSection();
+            closeModal();
         };
     }});
 }
@@ -417,27 +473,64 @@ function showScheduleSpreadsheet() {
     openModal({ title: "Chỉnh sửa Thời khóa biểu", size: 'max-w-7xl', contentHTML, onOpened: () => {
         const spreadsheetEl = document.getElementById('spreadsheet-container');
         if (!spreadsheetEl) return;
+        
         const days = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-        const columns = [{ type: 'text', title: 'Buổi', width: 80, readOnly: true }, { type: 'text', title: 'Tiết', width: 80, readOnly: true }, ...days.map(day => ({ type: 'text', title: day, width: 150 }))];
         const data = [];
         const sessions = [{name: 'Sáng', key: 'morning'}, {name: 'Chiều', key: 'afternoon'}];
+        
         sessions.forEach(session => {
             for (let i = 0; i < 5; i++) {
-                const row = [session.name, `Tiết ${i + 1}`];
-                days.forEach(day => { row.push(appData.schedule[day]?.[session.key]?.[i]?.subject || ''); });
+                const row = {
+                    session: session.name,
+                    period: `Tiết ${i + 1}`,
+                };
+                days.forEach(day => {
+                    row[day] = appData.schedule[day]?.[session.key]?.[i]?.subject || '';
+                });
                 data.push(row);
             }
         });
-        const spreadsheet = jspreadsheet(spreadsheetEl, { data, columns, license: 'CE' });
+
+        if (document.documentElement.classList.contains('dark')) {
+            spreadsheetEl.classList.add('htDark');
+        }
+
+        handsontableInstance = new Handsontable(spreadsheetEl, {
+            data: data,
+            rowHeaders: true,
+            colHeaders: ['Buổi', 'Tiết', ...days],
+            columns: [
+                { data: 'session', readOnly: true },
+                { data: 'period', readOnly: true },
+                ...days.map(day => ({ data: day }))
+            ],
+            mergeCells: [
+                { row: 0, col: 0, rowspan: 5, colspan: 1 },
+                { row: 5, col: 0, rowspan: 5, colspan: 1 },
+            ],
+            width: '100%',
+            height: '100%',
+            licenseKey: 'non-commercial-and-evaluation'
+        });
+
         dom.modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
-            const rawData = spreadsheet.getData();
+            const updatedData = handsontableInstance.getSourceData();
             sessions.forEach((session, sessionIndex) => {
                 for (let i = 0; i < 5; i++) {
                      const rowIndex = sessionIndex * 5 + i;
-                     days.forEach((day, dayIndex) => { appData.schedule[day][session.key][i].subject = rawData[rowIndex][dayIndex + 2]; });
+                     days.forEach(day => {
+                         if (!appData.schedule[day]) appData.schedule[day] = { morning: [], afternoon: [] };
+                         if (!appData.schedule[day][session.key]) appData.schedule[day][session.key] = Array(5).fill({ subject: '' });
+                         if (!appData.schedule[day][session.key][i]) appData.schedule[day][session.key][i] = { subject: '' };
+
+                         appData.schedule[day][session.key][i] = { subject: updatedData[rowIndex][day] };
+                     });
                 }
             });
-            saveAppDataToStorage(appData); markAsDirty(); renderScheduleSection(); closeModal();
+            saveAppDataToStorage(appData);
+            markAsDirty();
+            renderScheduleSection();
+            closeModal();
         };
     }});
 }

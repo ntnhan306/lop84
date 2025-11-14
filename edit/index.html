@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chỉnh sửa - Thông tin Lớp 8/4 (v4.0)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- jspreadsheet-ce -->
-    <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.14.0/dist/index.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4.14.0/dist/jspreadsheet.min.css" type="text/css" />
+    <!-- Handsontable -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
 
     <style>
       /* Custom scrollbar for better aesthetics */
@@ -16,8 +16,17 @@
       ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: #555; }
       #auth-container, #edit-container { min-height: 100vh; }
-      /* jspreadsheet dark theme adjustments */
-      .jss-dark { --jss-main-bg-color: #1f2937; --jss-main-font-color: #f3f4f6; --jss-border-color: #4b5563; --jss-header-bg-color: #374151; }
+      
+      /* Handsontable dark theme adjustments */
+      .htDark .handsontable { background-color: #1f2937; color: #f3f4f6; }
+      .htDark .handsontable .htCore { border-color: #4b5563; }
+      .htDark .handsontable th, .htDark .handsontable td { border-color: #4b5563; }
+      .htDark .handsontable th { background-color: #374151; color: #f3f4f6; }
+      .htDark .handsontable .htDimmed { color: #d1d5db; }
+      .htDark .handsontable .htPlaceholder { color: #9ca3af; }
+      .htDark .handsontable .htActiveStyle { background-color: #374151; }
+      .htDark .handsontable .htSelection { background-color: rgba(79, 70, 229, 0.2); }
+      .htDark .handsontable .ht__manualColumnMove.active, .htDark .handsontable .ht__manualRowMove.active { background-color: #4f46e5; }
       
       /* Accordion Styles */
       .accordion-content {
