@@ -4,14 +4,14 @@ import { renderGallery, renderClassList, renderSchedule, icons, openLightbox } f
 // --- State Management ---
 let appData = null;
 let currentView = 'gallery'; // Default view
-const POLLING_INTERVAL = 10; // 5 seconds
-const INACTIVE_POLLING_INTERVAL = 30000; // 30 seconds
-let currentPollingInterval = POLLING_INTERVAL;
-let pollTimeoutId = null;
+let pollInterval = 2000; // Start with the active interval
+const ACTIVE_POLLING_INTERVAL = 2000; // 2 seconds for near real-time updates
+const INACTIVE_POLLING_INTERVAL = 10000; // 10 seconds when tab is in background
 let isFirstLoad = true;
 let lastConnectionStatus = '';
-let fetchFailures = 0;
-const FAILURE_THRESHOLD = 2;
+let lastDataString = '';
+let pollTimeoutId = null;
+
 
 // --- DOM Elements ---
 const navTabs = document.querySelectorAll('.nav-tab');
@@ -80,25 +80,18 @@ function setActiveView(viewName) {
     renderActiveView();
 }
 
-async function pollForData(force = false) {
+
+async function fetchData() {
     if (pollTimeoutId) clearTimeout(pollTimeoutId);
-    
-    // If the page is not visible and we are not forcing a poll, schedule the next one and exit
-    if (document.hidden && !force) {
-        pollTimeoutId = setTimeout(pollForData, currentPollingInterval);
-        return;
-    }
 
     try {
-        if (isFirstLoad) {
-            updateConnectionStatus('loading');
-        }
-
         const newData = await fetchAppData();
+        const newDataString = JSON.stringify(newData);
+        
         updateConnectionStatus('connected');
-        fetchFailures = 0;
 
-        if (JSON.stringify(newData) !== JSON.stringify(appData)) {
+        if (newDataString !== lastDataString) {
+            lastDataString = newDataString;
             appData = newData;
             renderActiveView();
         }
@@ -106,13 +99,10 @@ async function pollForData(force = false) {
         if (isFirstLoad) {
             isFirstLoad = false;
         }
-        
+
     } catch (error) {
-        console.error("Lỗi khi lấy dữ liệu:", error);
-        fetchFailures++;
-        if (fetchFailures >= FAILURE_THRESHOLD) {
-            updateConnectionStatus('disconnected');
-        }
+        console.error("Lỗi khi tải dữ liệu:", error);
+        updateConnectionStatus('disconnected');
 
         if (isFirstLoad) {
             isFirstLoad = false;
@@ -126,20 +116,22 @@ async function pollForData(force = false) {
                 </div>
             `;
         }
+
     } finally {
-        pollTimeoutId = setTimeout(pollForData, currentPollingInterval);
+        pollTimeoutId = setTimeout(fetchData, pollInterval);
     }
 }
 
 
 function handleVisibilityChange() {
     if (document.hidden) {
-        // Tab is inactive, slow down polling
-        currentPollingInterval = INACTIVE_POLLING_INTERVAL;
+        pollInterval = INACTIVE_POLLING_INTERVAL;
+        if (pollTimeoutId) clearTimeout(pollTimeoutId); // Stop polling when hidden
+        pollTimeoutId = setTimeout(fetchData, pollInterval); // Schedule next poll
     } else {
-        // Tab is active, speed up polling and poll immediately
-        currentPollingInterval = POLLING_INTERVAL;
-        pollForData(true); // Force an immediate poll
+        pollInterval = ACTIVE_POLLING_INTERVAL;
+        // Fetch immediately when tab becomes visible again for quicker update
+        fetchData();
     }
 }
 
@@ -151,6 +143,7 @@ async function init() {
     document.getElementById('edit-link').prepend(new DOMParser().parseFromString(icons.edit, 'image/svg+xml').documentElement);
     
     // Initial placeholder
+    updateConnectionStatus('loading');
     viewContent.innerHTML = `
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center">
             <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-300">Đang tải dữ liệu...</h2>
@@ -176,7 +169,9 @@ async function init() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
     
     setActiveView(currentView); // Set initial active tab style
-    pollForData();
+    
+    // Start polling for data
+    fetchData();
 }
 
 document.addEventListener('DOMContentLoaded', init);
