@@ -1,5 +1,5 @@
 
-// v4.3 - Refined Class List Spreadsheet Logic
+// v4.4 - Direct Editing Experience (No Spreadsheet Modals)
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
@@ -8,7 +8,10 @@ let appData = null;
 let sessionAuthToken = null;
 let isDirty = false; // Tracks if there are unsaved changes
 let isSyncing = false;
-let handsontableInstance = null; // To hold the table instance
+
+// --- Section States ---
+let classListEditMode = false;
+let scheduleEditMode = false;
 
 // --- UI State ---
 let isSelectionMode = false;
@@ -144,13 +147,13 @@ function renderGallerySection() {
 function renderClassListSection() {
     const contentWrapper = document.querySelector('#classlist-section-content > div');
     if (!contentWrapper) return;
-    contentWrapper.innerHTML = renderClassList(appData.students, appData.studentColumns, { isEditing: true });
+    contentWrapper.innerHTML = renderClassList(appData.students, appData.studentColumns, { isEditing: true, directEditMode: classListEditMode });
 }
 
 function renderScheduleSection() {
     const contentWrapper = document.querySelector('#schedule-section-content > div');
     if (!contentWrapper) return;
-    contentWrapper.innerHTML = renderSchedule(appData.schedule, true);
+    contentWrapper.innerHTML = renderSchedule(appData.schedule, { isEditing: true, directEditMode: scheduleEditMode });
 }
 
 // --- STATE & DATA HANDLING --- //
@@ -392,211 +395,12 @@ function openModal({ title, contentHTML, size = 'max-w-4xl', onOpened = null }) 
 }
 
 function closeModal() {
-    if (handsontableInstance) {
-        handsontableInstance.destroy();
-        handsontableInstance = null;
-    }
     const backdrop = document.getElementById('modal-backdrop');
     if (backdrop) {
         backdrop.style.opacity = '0';
         backdrop.querySelector('#modal-box').style.transform = 'scale(0.95)';
         setTimeout(() => { dom.modalContainer.innerHTML = '' }, 300);
     }
-}
-
-function showClassListSpreadsheet() {
-    const contentHTML = '<div id="spreadsheet-container" class="h-[65vh] w-full"></div>' +
-        `<div class="p-4 border-t dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50">
-            <p class="text-xs text-gray-500 mr-auto self-center italic">Chuột phải để thêm cột mới vào cuối. STT tự động điền.</p>
-            <button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button>
-            <button type="button" data-action="modal-save" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu và Đóng</button>
-        </div>`;
-
-    openModal({ title: 'Chỉnh sửa Danh sách Lớp', size: 'max-w-7xl', contentHTML, onOpened: () => {
-        const spreadsheetEl = document.getElementById('spreadsheet-container');
-        if (!spreadsheetEl) return;
-
-        // Đảm bảo luôn có ít nhất 2 cột: STT và Họ và Tên
-        let colHeaders = appData.studentColumns.map(c => c.label);
-        if (colHeaders.length === 0) {
-            colHeaders = ['STT', 'Họ và Tên'];
-        } else {
-            if (!colHeaders.some(h => h.toUpperCase() === 'STT')) colHeaders.unshift('STT');
-            if (!colHeaders.some(h => h.toUpperCase() === 'HỌ VÀ TÊN')) colHeaders.push('Họ và Tên');
-        }
-
-        // Tạo dữ liệu 2D cho Handsontable
-        const data = appData.students.length > 0 
-            ? appData.students.map((student, idx) => {
-                return colHeaders.map(label => {
-                    if (label.toUpperCase() === 'STT') return (idx + 1).toString();
-                    const colConfig = appData.studentColumns.find(c => c.label === label);
-                    if (colConfig) return student[colConfig.key] || '';
-                    if (label.toUpperCase() === 'HỌ VÀ TÊN') return student.name || '';
-                    return '';
-                });
-            })
-            : [['1', '']]; // Mặc định 1 dòng trống nếu dữ liệu rỗng
-
-        if (document.documentElement.classList.contains('dark')) spreadsheetEl.classList.add('htDark');
-
-        handsontableInstance = new Handsontable(spreadsheetEl, {
-            data: data,
-            colHeaders: colHeaders,
-            rowHeaders: true,
-            minSpareRows: 1, // Luôn để 1 dòng trống ở cuối
-            contextMenu: {
-                items: {
-                    "row_above": { name: "Thêm hàng phía trên" },
-                    "row_below": { name: "Thêm hàng phía dưới" },
-                    "remove_row": { name: "Xóa hàng" },
-                    "hsep1": "---------",
-                    "col_left": { name: "Thêm cột bên trái" },
-                    "col_right": { name: "Thêm cột bên phải" },
-                    "remove_col": { name: "Xóa cột" },
-                    "hsep2": "---------",
-                    "add_column_end": {
-                        name: 'Thêm cột mới vào cuối bảng',
-                        callback: function() {
-                            const colCount = this.countCols();
-                            this.alter('insert_col', colCount);
-                            const currentHeaders = this.getColHeader();
-                            const newLabel = prompt("Nhập tên cho cột mới:", `Cột ${colCount + 1}`);
-                            currentHeaders[colCount] = newLabel || `Cột ${colCount + 1}`;
-                            this.updateSettings({ colHeaders: currentHeaders });
-                        }
-                    },
-                    "rename_column": {
-                        name: 'Đổi tên cột này',
-                        callback: function(key, selection) {
-                            const colIdx = selection[0].start.col;
-                            const oldLabel = this.getColHeader(colIdx);
-                            const newLabel = prompt("Nhập tên mới cho cột:", oldLabel);
-                            if (newLabel !== null && newLabel.trim() !== "") {
-                                const currentHeaders = [...this.getColHeader()];
-                                currentHeaders[colIdx] = newLabel.trim();
-                                this.updateSettings({ colHeaders: currentHeaders });
-                            }
-                        }
-                    }
-                }
-            },
-            // Logic tự điền STT theo hàng
-            afterChange: function(changes, source) {
-                if (source === 'loadData' || source === 'auto') return;
-                const sttColIdx = this.getColHeader().findIndex(h => h.toUpperCase() === 'STT');
-                if (sttColIdx === -1) return;
-
-                changes.forEach(([row, prop]) => {
-                    // Nếu sửa bất kỳ ô nào không phải STT, đảm bảo STT hàng đó đúng
-                    if (prop !== sttColIdx) {
-                        this.setDataAtCell(row, sttColIdx, (row + 1).toString(), 'auto');
-                    }
-                });
-            },
-            afterCreateRow: function(index, amount) {
-                const sttColIdx = this.getColHeader().findIndex(h => h.toUpperCase() === 'STT');
-                if (sttColIdx !== -1) {
-                    // Khi thêm hàng, cập nhật lại toàn bộ STT từ vị trí đó đến cuối để đảm bảo thứ tự
-                    for (let i = index; i < this.countRows(); i++) {
-                        this.setDataAtCell(i, sttColIdx, (i + 1).toString(), 'auto');
-                    }
-                }
-            },
-            manualColumnMove: true,
-            manualColumnResize: true,
-            width: '100%',
-            height: '100%',
-            licenseKey: 'non-commercial-and-evaluation'
-        });
-
-        dom.modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
-            const currentHeaders = handsontableInstance.getColHeader();
-            const rawData = handsontableInstance.getData();
-
-            // Lọc bỏ các dòng hoàn toàn trống
-            const filteredData = rawData.filter(row => row.some(cell => cell !== null && String(cell).trim() !== ''));
-
-            // Tái cấu trúc studentColumns
-            appData.studentColumns = currentHeaders.map((label, idx) => {
-                let key = `col_${idx}_${Date.now()}`;
-                if (label.toUpperCase() === 'STT') key = 'stt';
-                else if (label.toUpperCase() === 'HỌ VÀ TÊN') key = 'name';
-                return { key, label };
-            });
-
-            // Tái cấu trúc students
-            appData.students = filteredData.map(row => {
-                const student = { id: crypto.randomUUID() };
-                row.forEach((cell, colIdx) => {
-                    const key = appData.studentColumns[colIdx].key;
-                    student[key] = cell || '';
-                });
-                return student;
-            });
-
-            markAsDirty(); 
-            renderClassListSection(); 
-            closeModal();
-        };
-    }});
-}
-
-function showScheduleSpreadsheet() {
-    const contentHTML = '<div id="spreadsheet-container" class="h-[65vh] w-full"></div>' +
-        `<div class="p-4 border-t dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50">
-            <button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button>
-            <button type="button" data-action="modal-save" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu và Đóng</button>
-        </div>`;
-    openModal({ title: "Chỉnh sửa Thời khóa biểu", size: 'max-w-7xl', contentHTML, onOpened: () => {
-        const spreadsheetEl = document.getElementById('spreadsheet-container');
-        if (!spreadsheetEl) return;
-        
-        const days = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-        const sessions = [{name: 'Sáng', key: 'morning'}, {name: 'Chiều', key: 'afternoon'}];
-        const data = [];
-        
-        sessions.forEach(session => {
-            for (let i = 0; i < 5; i++) {
-                const row = { session: session.name, period: `Tiết ${i + 1}` };
-                days.forEach(day => { row[day] = appData.schedule[day]?.[session.key]?.[i]?.subject || ''; });
-                data.push(row);
-            }
-        });
-
-        if (document.documentElement.classList.contains('dark')) spreadsheetEl.classList.add('htDark');
-
-        handsontableInstance = new Handsontable(spreadsheetEl, {
-            data: data,
-            rowHeaders: true,
-            colHeaders: ['Buổi', 'Tiết', ...days],
-            columns: [
-                { data: 'session', readOnly: true },
-                { data: 'period', readOnly: true },
-                ...days.map(day => ({ data: day, wordWrap: true })) // Bật wordWrap để nhập được nhiều dòng
-            ],
-            mergeCells: [ { row: 0, col: 0, rowspan: 5, colspan: 1 }, { row: 5, col: 0, rowspan: 5, colspan: 1 } ],
-            autoRowSize: true, // Tự động điều chỉnh kích thước hàng khi có nhiều dòng văn bản
-            width: '100%',
-            height: '100%',
-            licenseKey: 'non-commercial-and-evaluation'
-        });
-
-        dom.modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
-            const updatedData = handsontableInstance.getSourceData();
-            sessions.forEach((session, sIdx) => {
-                for (let i = 0; i < 5; i++) {
-                     const rIdx = sIdx * 5 + i;
-                     days.forEach(day => {
-                         if (!appData.schedule[day]) appData.schedule[day] = { morning: [], afternoon: [] };
-                         if (!appData.schedule[day][session.key]) appData.schedule[day][session.key] = Array(5).fill({ subject: '' });
-                         appData.schedule[day][session.key][i] = { subject: updatedData[rIdx][day] };
-                     });
-                }
-            });
-            markAsDirty(); renderScheduleSection(); closeModal();
-        };
-    }});
 }
 
 async function showMediaForm(mediaId = null) {
@@ -661,11 +465,90 @@ async function handleChangePassword(form) {
     }
 }
 
+// --- CLASS LIST ROW/COL HANDLERS --- //
+
+function addClassListRow() {
+    const newStudent = { id: crypto.randomUUID() };
+    appData.studentColumns.forEach(col => {
+        newStudent[col.key] = '';
+    });
+    // Ensure STT is correctly filled
+    newStudent.stt = (appData.students.length + 1).toString();
+    appData.students.push(newStudent);
+    markAsDirty();
+    renderClassListSection();
+}
+
+function removeClassListRow(index) {
+    appData.students.splice(index, 1);
+    // Re-index STT
+    appData.students.forEach((s, idx) => s.stt = (idx + 1).toString());
+    markAsDirty();
+    renderClassListSection();
+}
+
+function addClassListColumn() {
+    const label = prompt("Nhập tên cho cột mới:", `Cột mới ${appData.studentColumns.length + 1}`);
+    if (label !== null && label.trim() !== "") {
+        const key = `col_${Date.now()}`;
+        appData.studentColumns.push({ key, label: label.trim() });
+        appData.students.forEach(s => s[key] = '');
+        markAsDirty();
+        renderClassListSection();
+    }
+}
+
+function removeClassListColumn(index) {
+    const col = appData.studentColumns[index];
+    if (col.key === 'stt' || col.key === 'name') {
+        alert('Không thể xóa cột mặc định.');
+        return;
+    }
+    if (confirm(`Xóa cột "${col.label}"?`)) {
+        appData.studentColumns.splice(index, 1);
+        appData.students.forEach(s => delete s[col.key]);
+        markAsDirty();
+        renderClassListSection();
+    }
+}
+
 // --- EVENT LISTENERS --- //
 
 function setupEventListeners() {
     dom.editContainer.addEventListener('change', e => {
         if (e.target.dataset.action === 'upload-media') handleFileUploads(e.target.files);
+        
+        if (e.target.dataset.action === 'toggle-section-edit') {
+            const section = e.target.dataset.section;
+            if (section === 'classlist') {
+                classListEditMode = e.target.checked;
+                renderClassListSection();
+            } else if (section === 'schedule') {
+                scheduleEditMode = e.target.checked;
+                renderScheduleSection();
+            }
+        }
+    });
+
+    dom.editContainer.addEventListener('input', e => {
+        const { action } = e.target.dataset;
+        if (!action) return;
+
+        if (action === 'update-cell') {
+            const { rowIndex, columnKey } = e.target.dataset;
+            appData.students[rowIndex][columnKey] = e.target.value;
+            markAsDirty();
+        } else if (action === 'update-column-label') {
+            const { columnIndex } = e.target.dataset;
+            appData.studentColumns[columnIndex].label = e.target.value;
+            markAsDirty();
+        } else if (action === 'update-schedule-cell') {
+            const { day, sessionKey, periodIndex } = e.target.dataset;
+            if (!appData.schedule[day]) appData.schedule[day] = { morning: [], afternoon: [] };
+            if (!appData.schedule[day][sessionKey]) appData.schedule[day][sessionKey] = Array(5).fill({ subject: '' });
+            appData.schedule[day][sessionKey][periodIndex] = { subject: e.target.value };
+            markAsDirty();
+        }
     });
 
     dom.editContainer.addEventListener('click', e => {
@@ -676,8 +559,10 @@ function setupEventListeners() {
         
         if (action === 'sync') handleSync();
         else if (action === 'toggle-accordion') toggleAccordion(accordionId);
-        else if (action === 'edit-classlist-spreadsheet') showClassListSpreadsheet();
-        else if (action === 'edit-schedule-spreadsheet') showScheduleSpreadsheet();
+        else if (action === 'add-row-end') addClassListRow();
+        else if (action === 'remove-row') removeClassListRow(parseInt(button.dataset.rowIndex));
+        else if (action === 'add-column-end') addClassListColumn();
+        else if (action === 'remove-column') removeClassListColumn(parseInt(button.dataset.columnIndex));
         else if (action === 'add-media-url') showMediaForm();
         else if (action === 'edit-media') showMediaForm(id);
         else if (action === 'delete-media') {

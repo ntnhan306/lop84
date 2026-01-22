@@ -33,6 +33,19 @@ function renderEmptyState(icon, title, description) {
     `;
 }
 
+function renderEditToggle(sectionId, isActive) {
+  return `
+    <div class="flex items-center gap-3 mb-6 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+        <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" data-action="toggle-section-edit" data-section="${sectionId}" class="sr-only peer" ${isActive ? 'checked' : ''}>
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 dark:peer-focus:ring-teal-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-teal-600"></div>
+            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Chế độ Chỉnh sửa</span>
+        </label>
+        ${isActive ? '<span class="text-xs text-teal-600 dark:text-teal-400 font-medium italic animate-pulse">Sửa trực tiếp bên dưới</span>' : ''}
+    </div>
+  `;
+}
+
 export function renderGallery(media, { isEditing = false, isSelectionMode = false, selectedIds = new Set() } = {}) {
     let content;
     if (media.length === 0) {
@@ -147,62 +160,87 @@ export function openLightbox(src) {
     container.addEventListener('click', (e) => { if (e.target === container) close(); });
 }
 
-function renderClassListTable(students, columns) {
-     if (students.length === 0) {
+function renderClassListTable(students, columns, { directEditMode = false } = {}) {
+     if (students.length === 0 && !directEditMode) {
         return renderEmptyState(icons.users, "Danh sách lớp trống", "Hiện chưa có thông tin học sinh nào được thêm vào.");
     }
 
-    // Check if there is already a column labeled 'STT' (case-insensitive)
     const hasSttColumn = columns.some(col => col.label.toUpperCase() === 'STT');
 
     const headerHtml = `
-        ${!hasSttColumn ? '<th scope="col" class="px-2 py-3 w-12 text-center">STT</th>' : ''}
-        ${columns.map(col => `<th scope="col" class="px-6 py-3">${col.label}</th>`).join('')}
+        ${!hasSttColumn ? '<th scope="col" class="px-2 py-3 w-12 text-center bg-gray-200 dark:bg-gray-600">STT</th>' : ''}
+        ${columns.map((col, idx) => `
+            <th scope="col" class="px-6 py-3 relative group">
+                ${directEditMode ? `
+                    <div class="flex flex-col gap-1">
+                        <input type="text" value="${col.label}" data-action="update-column-label" data-column-index="${idx}" class="bg-transparent border-b border-gray-400 focus:border-indigo-500 outline-none w-full text-center">
+                        <button data-action="remove-column" data-column-index="${idx}" class="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                            ${icons.trash.replace('h-4 w-4', 'h-3 w-3')}
+                        </button>
+                    </div>
+                ` : col.label}
+            </th>
+        `).join('')}
+        ${directEditMode ? `
+            <th scope="col" class="px-2 py-3 w-10 text-center">
+                <button data-action="add-column-end" class="p-1.5 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors" title="Thêm cột vào cuối">
+                    ${icons.plus.replace('w-5 h-5', 'w-3.5 h-3.5')}
+                </button>
+            </th>
+        ` : ''}
     `;
 
     const bodyHtml = students.map((student, index) => `
-        <tr class="bg-white dark:bg-gray-800 even:bg-gray-50 dark:even:bg-gray-800/50 border-b dark:border-gray-700">
-            ${!hasSttColumn ? `<td class="px-2 py-4 text-center font-medium text-gray-500 dark:text-gray-400">${index + 1}</td>` : ''}
+        <tr class="bg-white dark:bg-gray-800 even:bg-gray-50 dark:even:bg-gray-800/50 border-b dark:border-gray-700 group">
+            ${!hasSttColumn ? `<td class="px-2 py-4 text-center font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30">${index + 1}</td>` : ''}
             ${columns.map(col => `
-                <td class="px-6 py-4 ${col.label.toUpperCase() === 'HỌ VÀ TÊN' || col.key === 'name' ? 'font-semibold text-gray-900 dark:text-white' : ''}">
-                    ${student[col.key] || ''}
+                <td class="px-6 py-4">
+                    ${directEditMode ? `
+                        <input type="text" value="${student[col.key] || ''}" data-action="update-cell" data-row-index="${index}" data-column-key="${col.key}" class="w-full bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded px-1">
+                    ` : `
+                        <div class="${col.label.toUpperCase() === 'HỌ VÀ TÊN' || col.key === 'name' ? 'font-semibold text-gray-900 dark:text-white' : ''}">
+                            ${student[col.key] || ''}
+                        </div>
+                    `}
                 </td>
             `).join('')}
+            ${directEditMode ? `
+                <td class="px-2 py-4 text-center">
+                    <button data-action="remove-row" data-row-index="${index}" class="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 opacity-0 group-hover:opacity-100 transition-opacity">
+                        ${icons.trash.replace('h-4 w-4', 'h-4 w-4')}
+                    </button>
+                </td>
+            ` : ''}
         </tr>
     `).join('');
     
     return `
-        <div class="overflow-x-auto relative shadow-md sm:rounded-lg bg-white dark:bg-gray-900">
+        <div class="overflow-x-auto relative shadow-md sm:rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
             <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
                     <tr>${headerHtml}</tr>
                 </thead>
                 <tbody>${bodyHtml}</tbody>
             </table>
+            ${directEditMode ? `
+                <div class="p-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-center">
+                    <button data-action="add-row-end" class="inline-flex items-center gap-2 px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-all shadow-sm">
+                        ${icons.plus}<span>Thêm học sinh mới</span>
+                    </button>
+                </div>
+            ` : ''}
         </div>`;
 }
 
 
-function renderClassListContent(students, columns, isEditing) {
-    const tableContent = renderClassListTable(students, columns);
+export function renderClassList(students, columns, { isEditing = false, directEditMode = false } = {}) {
+    let content = '';
+    
     if (isEditing) {
-        return `
-            <div id="classlist-preview-container" class="mb-4">
-                ${tableContent}
-            </div>
-            <div class="flex justify-end">
-                <button data-action="edit-classlist-spreadsheet" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600">
-                    ${icons.spreadsheet}<span>Chỉnh sửa Bảng</span>
-                </button>
-            </div>
-        `;
+        content = renderEditToggle('classlist', directEditMode) + renderClassListTable(students, columns, { directEditMode });
+    } else {
+        content = renderClassListTable(students, columns);
     }
-    return tableContent;
-}
-
-
-export function renderClassList(students, columns, { isEditing = false } = {}) {
-    const content = renderClassListContent(students, columns, isEditing);
 
     if (isEditing) {
         return content;
@@ -215,17 +253,17 @@ export function renderClassList(students, columns, { isEditing = false } = {}) {
     </div>`;
 }
 
-function renderScheduleTable(schedule) {
+function renderScheduleTable(schedule, { directEditMode = false } = {}) {
     const daysOfWeek = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
     const sessions = [{name: 'Sáng', key: 'morning'}, {name: 'Chiều', key: 'afternoon'}];
     const periods = [1, 2, 3, 4, 5];
 
     let tableHtml = `
-    <div class="overflow-x-auto shadow-md sm:rounded-lg">
+    <div class="overflow-x-auto shadow-md sm:rounded-lg border border-gray-200 dark:border-gray-700">
       <table class="w-full border-collapse text-sm text-center text-gray-500 dark:text-gray-400 table-fixed min-w-[800px]">
         <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
           <tr>
-            <th class="px-2 py-3 border-r dark:border-gray-600 w-24" colspan="2">Buổi / Tiết</th>
+            <th class="px-2 py-3 border-r dark:border-gray-600 w-24 bg-gray-200 dark:bg-gray-600" colspan="2">Buổi / Tiết</th>
             ${daysOfWeek.map(day => `<th class="px-4 py-3">${day}</th>`).join('')}
           </tr>
         </thead>
@@ -235,16 +273,21 @@ function renderScheduleTable(schedule) {
         periods.forEach((period, periodIndex) => {
             tableHtml += `<tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">`;
             if (periodIndex === 0) {
-                tableHtml += `<td rowspan="5" class="px-2 py-4 font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50 border-r dark:border-gray-600 align-middle w-12">${session.name}</td>`;
+                tableHtml += `<td rowspan="5" class="px-2 py-4 font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 border-r dark:border-gray-600 align-middle w-12">${session.name}</td>`;
             }
-            tableHtml += `<td class="px-2 py-4 font-medium text-gray-600 dark:text-gray-400 border-r dark:border-gray-600 w-12 text-xs uppercase">T${period}</td>`;
+            tableHtml += `<td class="px-2 py-4 font-medium text-gray-600 dark:text-gray-400 border-r dark:border-gray-600 w-12 text-xs uppercase bg-gray-50/50 dark:bg-gray-700/30">T${period}</td>`;
             daysOfWeek.forEach(day => {
                 const subject = schedule[day]?.[session.key]?.[periodIndex]?.subject || '';
-                // Thêm whitespace-pre-line để hỗ trợ hiển thị nhiều dòng và min-h để ô có không gian
                 tableHtml += `
                     <td class="border-l dark:border-gray-700 p-0 align-middle">
-                        <div class="p-2 w-full h-full min-h-[4rem] flex items-center justify-center font-semibold text-gray-900 dark:text-gray-100 whitespace-pre-line break-words leading-tight">
-                            ${subject}
+                        <div class="w-full h-full min-h-[4rem] flex items-center justify-center">
+                            ${directEditMode ? `
+                                <textarea data-action="update-schedule-cell" data-day="${day}" data-session-key="${session.key}" data-period-index="${periodIndex}" class="w-full h-full min-h-[4rem] bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded p-2 text-center resize-none">${subject}</textarea>
+                            ` : `
+                                <div class="p-2 font-semibold text-gray-900 dark:text-gray-100 whitespace-pre-line break-words leading-tight">
+                                    ${subject}
+                                </div>
+                            `}
                         </div>
                     </td>`;
             });
@@ -256,25 +299,14 @@ function renderScheduleTable(schedule) {
 }
 
 
-function renderScheduleContent(schedule, isEditing) {
-    const tableContent = renderScheduleTable(schedule);
-     if (isEditing) {
-        return `
-            <div id="schedule-preview-container">
-                ${tableContent}
-            </div>
-            <div class="flex justify-end mt-4">
-                <button data-action="edit-schedule-spreadsheet" class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600">
-                    ${icons.spreadsheet}<span>Chỉnh sửa Bảng</span>
-                </button>
-            </div>
-        `;
+export function renderSchedule(schedule, { isEditing = false, directEditMode = false } = {}) {
+    let content = '';
+    
+    if (isEditing) {
+        content = renderEditToggle('schedule', directEditMode) + renderScheduleTable(schedule, { directEditMode });
+    } else {
+        content = renderScheduleTable(schedule);
     }
-    return tableContent;
-}
-
-export function renderSchedule(schedule, isEditing = false) {
-    const content = renderScheduleContent(schedule, isEditing);
     
     if (isEditing) {
         return content;
