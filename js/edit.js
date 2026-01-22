@@ -1,5 +1,5 @@
 
-// v4.2 - Final Polish on Class List Spreadsheet
+// v4.3 - Refined Class List Spreadsheet Logic
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
@@ -407,7 +407,7 @@ function closeModal() {
 function showClassListSpreadsheet() {
     const contentHTML = '<div id="spreadsheet-container" class="h-[65vh] w-full"></div>' +
         `<div class="p-4 border-t dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50">
-            <p class="text-xs text-gray-500 mr-auto self-center italic">STT tự động điền theo hàng. Chuột phải tiêu đề để thêm/xóa/đổi tên cột.</p>
+            <p class="text-xs text-gray-500 mr-auto self-center italic">Chuột phải để thêm cột mới vào cuối. STT tự động điền.</p>
             <button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button>
             <button type="button" data-action="modal-save" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu và Đóng</button>
         </div>`;
@@ -416,26 +416,27 @@ function showClassListSpreadsheet() {
         const spreadsheetEl = document.getElementById('spreadsheet-container');
         if (!spreadsheetEl) return;
 
-        // Ensure we have at least STT and Họ và Tên
+        // Đảm bảo luôn có ít nhất 2 cột: STT và Họ và Tên
         let colHeaders = appData.studentColumns.map(c => c.label);
         if (colHeaders.length === 0) {
             colHeaders = ['STT', 'Họ và Tên'];
         } else {
-            // Check if STT and Họ và Tên exist, otherwise prepend/add them
             if (!colHeaders.some(h => h.toUpperCase() === 'STT')) colHeaders.unshift('STT');
             if (!colHeaders.some(h => h.toUpperCase() === 'HỌ VÀ TÊN')) colHeaders.push('Họ và Tên');
         }
 
-        const data = appData.students.map((student, idx) => {
-             // Create row by matching existing keys or leaving empty
-             return colHeaders.map(label => {
-                if (label.toUpperCase() === 'STT') return student.stt || (idx + 1).toString();
-                const col = appData.studentColumns.find(c => c.label === label);
-                if (col) return student[col.key] || '';
-                if (label.toUpperCase() === 'HỌ VÀ TÊN') return student.name || '';
-                return '';
-             });
-        });
+        // Tạo dữ liệu 2D cho Handsontable
+        const data = appData.students.length > 0 
+            ? appData.students.map((student, idx) => {
+                return colHeaders.map(label => {
+                    if (label.toUpperCase() === 'STT') return (idx + 1).toString();
+                    const colConfig = appData.studentColumns.find(c => c.label === label);
+                    if (colConfig) return student[colConfig.key] || '';
+                    if (label.toUpperCase() === 'HỌ VÀ TÊN') return student.name || '';
+                    return '';
+                });
+            })
+            : [['1', '']]; // Mặc định 1 dòng trống nếu dữ liệu rỗng
 
         if (document.documentElement.classList.contains('dark')) spreadsheetEl.classList.add('htDark');
 
@@ -454,6 +455,17 @@ function showClassListSpreadsheet() {
                     "col_right": { name: "Thêm cột bên phải" },
                     "remove_col": { name: "Xóa cột" },
                     "hsep2": "---------",
+                    "add_column_end": {
+                        name: 'Thêm cột mới vào cuối bảng',
+                        callback: function() {
+                            const colCount = this.countCols();
+                            this.alter('insert_col', colCount);
+                            const currentHeaders = this.getColHeader();
+                            const newLabel = prompt("Nhập tên cho cột mới:", `Cột ${colCount + 1}`);
+                            currentHeaders[colCount] = newLabel || `Cột ${colCount + 1}`;
+                            this.updateSettings({ colHeaders: currentHeaders });
+                        }
+                    },
                     "rename_column": {
                         name: 'Đổi tên cột này',
                         callback: function(key, selection) {
@@ -469,25 +481,25 @@ function showClassListSpreadsheet() {
                     }
                 }
             },
-            // Auto-fill STT logic
+            // Logic tự điền STT theo hàng
             afterChange: function(changes, source) {
-                if (source === 'loadData') return;
-                changes.forEach(([row, prop, oldValue, newValue]) => {
-                    // If user edited any cell in a row that doesn't have an STT, fill STT
-                    const sttColIdx = this.getColHeader().findIndex(h => h.toUpperCase() === 'STT');
-                    if (sttColIdx !== -1 && prop !== sttColIdx) {
-                        const currentStt = this.getDataAtCell(row, sttColIdx);
-                        if (!currentStt || currentStt === '') {
-                             this.setDataAtCell(row, sttColIdx, (row + 1).toString(), 'auto');
-                        }
+                if (source === 'loadData' || source === 'auto') return;
+                const sttColIdx = this.getColHeader().findIndex(h => h.toUpperCase() === 'STT');
+                if (sttColIdx === -1) return;
+
+                changes.forEach(([row, prop]) => {
+                    // Nếu sửa bất kỳ ô nào không phải STT, đảm bảo STT hàng đó đúng
+                    if (prop !== sttColIdx) {
+                        this.setDataAtCell(row, sttColIdx, (row + 1).toString(), 'auto');
                     }
                 });
             },
             afterCreateRow: function(index, amount) {
                 const sttColIdx = this.getColHeader().findIndex(h => h.toUpperCase() === 'STT');
                 if (sttColIdx !== -1) {
-                    for (let i = 0; i < amount; i++) {
-                        this.setDataAtCell(index + i, sttColIdx, (index + i + 1).toString(), 'auto');
+                    // Khi thêm hàng, cập nhật lại toàn bộ STT từ vị trí đó đến cuối để đảm bảo thứ tự
+                    for (let i = index; i < this.countRows(); i++) {
+                        this.setDataAtCell(i, sttColIdx, (i + 1).toString(), 'auto');
                     }
                 }
             },
@@ -500,16 +512,18 @@ function showClassListSpreadsheet() {
 
         dom.modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
             const currentHeaders = handsontableInstance.getColHeader();
-            const rawData = handsontableInstance.getData(); // Trả về 2D array
+            const rawData = handsontableInstance.getData();
 
             // Lọc bỏ các dòng hoàn toàn trống
             const filteredData = rawData.filter(row => row.some(cell => cell !== null && String(cell).trim() !== ''));
 
             // Tái cấu trúc studentColumns
-            appData.studentColumns = currentHeaders.map((label, idx) => ({
-                key: label.toUpperCase() === 'STT' ? 'stt' : (label.toUpperCase() === 'HỌ VÀ TÊN' ? 'name' : `col_${idx}_${Date.now()}`),
-                label: label
-            }));
+            appData.studentColumns = currentHeaders.map((label, idx) => {
+                let key = `col_${idx}_${Date.now()}`;
+                if (label.toUpperCase() === 'STT') key = 'stt';
+                else if (label.toUpperCase() === 'HỌ VÀ TÊN') key = 'name';
+                return { key, label };
+            });
 
             // Tái cấu trúc students
             appData.students = filteredData.map(row => {
