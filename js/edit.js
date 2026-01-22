@@ -1,3 +1,4 @@
+
 // v4.0 - Refactored for Stability
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
@@ -115,26 +116,26 @@ function renderGallerySection() {
     if (!contentWrapper) return;
     contentWrapper.innerHTML = `
         <div id="gallery-alerts"></div>
-        <div id="gallery-actions" class="flex flex-wrap items-center gap-4"></div>
+        <div id="gallery-actions" class="flex flex-wrap items-center gap-4 mb-6"></div>
         <div id="upload-progress-container" class="hidden"></div>
         <div id="gallery-container"></div>`;
     const actionsContainer = document.getElementById('gallery-actions');
     const container = document.getElementById('gallery-container');
     let actionsHTML = `
-        <label class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 cursor-pointer">
+        <label class="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 cursor-pointer transition-all">
             ${icons.plus}<span>Tải lên Tệp</span>
             <input type="file" multiple class="hidden" data-action="upload-media" accept="image/*,video/*,audio/*">
         </label>
-        <button data-action="add-media-url" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-semibold rounded-lg shadow-md hover:bg-gray-300 dark:hover:bg-gray-600">${icons.plus}<span>Thêm từ URL</span></button>
-        <button data-action="toggle-select-mode" class="inline-flex items-center gap-2 px-4 py-2 ${isSelectionMode ? 'bg-indigo-600' : 'bg-blue-500'} text-white font-semibold rounded-lg shadow-md hover:bg-blue-600">
+        <button data-action="add-media-url" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-semibold rounded-lg shadow-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-all">${icons.plus}<span>Thêm từ URL</span></button>
+        <button data-action="toggle-select-mode" class="inline-flex items-center gap-2 px-4 py-2 ${isSelectionMode ? 'bg-indigo-600' : 'bg-blue-500'} text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition-all">
             ${isSelectionMode ? icons.check : icons.checkbox}<span>${isSelectionMode ? 'Hoàn tất chọn' : 'Chọn mục'}</span>
         </button>`;
     if (isSelectionMode) {
         const allSelected = appData.media.length > 0 && selectedMediaIds.size === appData.media.length;
-        actionsHTML += `<button data-action="${allSelected ? 'deselect-all-media' : 'select-all-media'}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600">${icons.checkboxChecked}<span>${allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}</span></button>`;
+        actionsHTML += `<button data-action="${allSelected ? 'deselect-all-media' : 'select-all-media'}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-md hover:bg-gray-600 transition-all">${icons.checkboxChecked}<span>${allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}</span></button>`;
     }
     if (isSelectionMode && selectedMediaIds.size > 0) {
-        actionsHTML += `<div class="flex items-center gap-4 ml-auto"><span class="font-medium text-gray-700 dark:text-gray-300">Đã chọn: ${selectedMediaIds.size}</span><button data-action="delete-selected-media" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700">${icons.trash}<span>Xóa mục đã chọn</span></button></div>`;
+        actionsHTML += `<div class="flex items-center gap-4 ml-auto"><span class="font-medium text-gray-700 dark:text-gray-300">Đã chọn: ${selectedMediaIds.size}</span><button data-action="delete-selected-media" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-all">${icons.trash}<span>Xóa mục đã chọn</span></button></div>`;
     }
     actionsContainer.innerHTML = actionsHTML;
     container.innerHTML = renderGallery(appData.media, { isEditing: true, isSelectionMode, selectedIds: selectedMediaIds });
@@ -209,12 +210,7 @@ async function handleSync() {
         updateSyncState({ status: 'error', message: 'Lỗi xác thực. Vui lòng đăng nhập lại.' });
         isSyncing = false; return;
     }
-    const dataToSync = appData;
-    if (!dataToSync) {
-        updateSyncState({ status: 'error', message: 'Lỗi: Không tìm thấy dữ liệu để đồng bộ.' });
-        isSyncing = false; return;
-    }
-    const result = await saveAppData(dataToSync, sessionAuthToken);
+    const result = await saveAppData(appData, sessionAuthToken);
     if (result.success) {
         saveAppDataToStorage(appData);
         updateSyncState({ status: 'synced', message: result.message });
@@ -247,7 +243,10 @@ async function handleLogin(e) {
 }
 
 async function showEditPage() {
-    dom.authContainer.innerHTML = `<div class="flex items-center justify-center h-screen">Đang tải dữ liệu mới nhất...</div>`;
+    dom.authContainer.innerHTML = `<div class="flex flex-col items-center justify-center h-screen space-y-4">
+        <svg class="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <span>Đang tải dữ liệu từ máy chủ...</span>
+    </div>`;
     try {
         appData = await fetchAppData();
         saveAppDataToStorage(appData);
@@ -255,7 +254,7 @@ async function showEditPage() {
         dom.editContainer.classList.remove('hidden');
         renderEditPage();
     } catch (error) {
-        dom.authContainer.innerHTML = `<div class="flex items-center justify-center h-screen text-red-500 p-4 text-center">Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối và thử lại. <br/><small>${error.message}</small></div>`;
+        dom.authContainer.innerHTML = `<div class="flex items-center justify-center h-screen text-red-500 p-4 text-center">Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối và thử lại. <br/><small class="block mt-2 font-mono text-xs opacity-70">${error.message}</small></div>`;
     }
 }
 
@@ -277,7 +276,7 @@ function displayAlert(containerId, message, type = 'error') {
         bgColor = 'bg-red-100 dark:bg-red-900/30 border-red-500';
         textColor = 'text-red-700 dark:text-red-300';
         icon = icons.error;
-    } else { // 'warning' or other types can be added
+    } else {
         bgColor = 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-500';
         textColor = 'text-yellow-700 dark:text-yellow-300';
         icon = icons.warning;
@@ -301,9 +300,9 @@ async function handleFileUploads(files) {
     if (!progressContainer) return;
 
     progressContainer.innerHTML = `
-        <div class="mt-4 space-y-2">
+        <div class="mt-4 p-4 bg-white dark:bg-gray-700 rounded-lg shadow-inner space-y-2">
             <p id="progress-text" class="text-sm font-medium text-gray-700 dark:text-gray-300"></p>
-            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-600">
                 <div id="progress-bar" class="bg-teal-500 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
             </div>
         </div>`;
@@ -318,44 +317,33 @@ async function handleFileUploads(files) {
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const currentFileText = `Đang xử lý tệp ${i + 1}/${files.length}: ${file.name}...`;
-        progressText.textContent = currentFileText;
-        progressBar.style.width = `${((i) / files.length) * 100}%`;
+        progressText.textContent = `Đang xử lý ${i + 1}/${files.length}: ${file.name}...`;
+        progressBar.style.width = `${(i / files.length) * 100}%`;
 
         if (file.size > MAX_FILE_SIZE_BYTES) {
             failedFiles.push({ name: file.name, reason: `Vượt quá giới hạn ${MAX_FILE_SIZE_MB}MB` });
-            continue; // Skip this file
+            continue;
         }
 
         try {
             const url = await readFileAsDataURL(file);
             const type = file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : 'audio';
-            const newMedia = { id: crypto.randomUUID(), type, url, caption: file.name };
-            appData.media.push(newMedia);
+            appData.media.push({ id: crypto.randomUUID(), type, url, caption: file.name });
             filesProcessed++;
         } catch (error) {
             failedFiles.push({ name: file.name, reason: 'Lỗi khi đọc tệp' });
-            console.error(`Lỗi khi đọc tệp ${file.name}:`, error);
         }
-        progressBar.style.width = `${((i + 1) / files.length) * 100}%`;
     }
 
-    if (filesProcessed > 0) {
-        markAsDirty();
-    }
+    progressBar.style.width = `100%`;
+    if (filesProcessed > 0) markAsDirty();
 
     if (failedFiles.length > 0) {
-        const errorMessage = `<strong>Không thể xử lý ${failedFiles.length} tệp do quá lớn.</strong> Giới hạn cho mỗi tệp là ${MAX_FILE_SIZE_MB}MB. <br>Tệp bị từ chối: ${failedFiles.map(f => f.name).join(', ')}`;
-        displayAlert('gallery-alerts', errorMessage, 'error');
+        displayAlert('gallery-alerts', `<strong>Không thể xử lý ${failedFiles.length} tệp:</strong> <br>${failedFiles.map(f => `- ${f.name}: ${f.reason}`).join('<br>')}`, 'error');
     }
 
-    progressText.textContent = `Hoàn tất! Đã thêm ${filesProcessed}/${files.length} tệp. ${failedFiles.length > 0 ? `${failedFiles.length} tệp bị từ chối.` : ''} Vui lòng "Lưu và Đồng bộ".`;
-    
-    setTimeout(() => {
-        progressContainer.classList.add('hidden');
-        progressContainer.innerHTML = '';
-    }, 8000);
-
+    progressText.textContent = `Hoàn tất! Đã thêm ${filesProcessed} tệp. Nhấn "Lưu và Đồng bộ" để cập nhật trang.`;
+    setTimeout(() => { progressContainer.classList.add('hidden'); }, 5000);
     renderGallerySection();
 }
 
@@ -381,8 +369,8 @@ function toggleAccordion(sectionId, forceOpen = false) {
 function openModal({ title, contentHTML, size = 'max-w-4xl', onOpened = null }) {
     dom.modalContainer.innerHTML = `
         <div id="modal-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 transition-opacity duration-300 ease-in-out opacity-0">
-            <div id="modal-box" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${size} max-h-[90vh] flex flex-col transform scale-95 transition-all duration-300 ease-in-out opacity-0">
-                <div class="flex justify-between items-center p-4 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+            <div id="modal-box" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full ${size} max-h-[90vh] flex flex-col transform scale-95 transition-all duration-300 ease-in-out opacity-0 overflow-hidden">
+                <div class="flex justify-between items-center p-4 border-b dark:border-gray-700 bg-white dark:bg-gray-800 z-10">
                     <h3 class="text-xl font-semibold text-gray-900 dark:text-white">${title}</h3>
                     <button data-action="modal-close" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
@@ -395,16 +383,11 @@ function openModal({ title, contentHTML, size = 'max-w-4xl', onOpened = null }) 
     const backdrop = document.getElementById('modal-backdrop');
     const modalBox = document.getElementById('modal-box');
     
-    // Add event listener BEFORE starting the animation
-    if (onOpened) {
-        modalBox.addEventListener('transitionend', onOpened, { once: true });
-    }
-
-    // Start the animation
     requestAnimationFrame(() => {
         backdrop.style.opacity = '1';
         modalBox.style.opacity = '1';
         modalBox.style.transform = 'scale(1)';
+        if (onOpened) onOpened();
     });
 }
 
@@ -434,75 +417,31 @@ function showClassListSpreadsheet() {
 
         const data = appData.students.map(student => {
             const row = {};
-            appData.studentColumns.forEach(col => {
-                row[col.key] = student[col.key] || '';
-            });
+            appData.studentColumns.forEach(col => { row[col.key] = student[col.key] || ''; });
             return row;
         });
 
-        const columns = appData.studentColumns.map(col => ({
-            data: col.key,
-            title: col.label,
-            readOnly: col.readonly || false
-        }));
-
-        if (document.documentElement.classList.contains('dark')) {
-            spreadsheetEl.classList.add('htDark');
-        }
+        if (document.documentElement.classList.contains('dark')) spreadsheetEl.classList.add('htDark');
 
         handsontableInstance = new Handsontable(spreadsheetEl, {
             data: data,
-            columns: columns,
-            colHeaders: appData.studentColumns.map(c => c.label),
+            columns: appData.studentColumns.map(col => ({ data: col.key, title: col.label, readOnly: col.readonly || false })),
             rowHeaders: true,
             manualColumnMove: true,
             manualColumnResize: true,
-            manualRowMove: true,
-            manualRowResize: true,
             contextMenu: true,
-            dropdownMenu: true,
-            filters: true,
-            allowInsertColumn: true,
-            allowRemoveColumn: true,
-            allowInsertRow: true,
-            allowRemoveRow: true,
             width: '100%',
             height: '100%',
             licenseKey: 'non-commercial-and-evaluation'
         });
 
         dom.modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
-            const hot = handsontableInstance;
-            const newHeaders = hot.getColHeader();
-            const dataToSave = hot.getSourceDataArray();
-
-            const slugify = (str) => str.toLowerCase().replace(/\s+/g, '_').replace(/[^\w-]+/g, '');
-
-            // Create new columns definition, preserving old keys if labels match
-            const oldLabelToKeyMap = new Map(appData.studentColumns.map(c => [c.label, c.key]));
-            const newColumns = newHeaders.map(label => ({
-                key: oldLabelToKeyMap.get(label) || (slugify(label) + '_' + crypto.randomUUID().slice(0, 4)),
-                label: label
+            const dataToSave = handsontableInstance.getSourceData();
+            appData.students = dataToSave.filter(row => Object.values(row).some(v => v !== '')).map((row, idx) => ({
+                id: (appData.students[idx] && appData.students[idx].id) || crypto.randomUUID(),
+                ...row
             }));
-
-            const newStudents = dataToSave
-                .map((row, rowIndex) => {
-                    if (row.every(cell => cell === null || cell === '')) return null; // Skip empty rows
-                    const student = { id: (appData.students[rowIndex] && appData.students[rowIndex].id) || crypto.randomUUID() };
-                    newColumns.forEach((col, colIndex) => {
-                        student[col.key] = row[colIndex];
-                    });
-                    return student;
-                })
-                .filter(Boolean);
-
-            appData.studentColumns = newColumns;
-            appData.students = newStudents;
-
-            saveAppDataToStorage(appData);
-            markAsDirty();
-            renderClassListSection();
-            closeModal();
+            markAsDirty(); renderClassListSection(); closeModal();
         };
     }});
 }
@@ -518,25 +457,18 @@ function showScheduleSpreadsheet() {
         if (!spreadsheetEl) return;
         
         const days = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-        const data = [];
         const sessions = [{name: 'Sáng', key: 'morning'}, {name: 'Chiều', key: 'afternoon'}];
+        const data = [];
         
         sessions.forEach(session => {
             for (let i = 0; i < 5; i++) {
-                const row = {
-                    session: session.name,
-                    period: `Tiết ${i + 1}`,
-                };
-                days.forEach(day => {
-                    row[day] = appData.schedule[day]?.[session.key]?.[i]?.subject || '';
-                });
+                const row = { session: session.name, period: `Tiết ${i + 1}` };
+                days.forEach(day => { row[day] = appData.schedule[day]?.[session.key]?.[i]?.subject || ''; });
                 data.push(row);
             }
         });
 
-        if (document.documentElement.classList.contains('dark')) {
-            spreadsheetEl.classList.add('htDark');
-        }
+        if (document.documentElement.classList.contains('dark')) spreadsheetEl.classList.add('htDark');
 
         handsontableInstance = new Handsontable(spreadsheetEl, {
             data: data,
@@ -545,12 +477,10 @@ function showScheduleSpreadsheet() {
             columns: [
                 { data: 'session', readOnly: true },
                 { data: 'period', readOnly: true },
-                ...days.map(day => ({ data: day }))
+                ...days.map(day => ({ data: day, wordWrap: true })) // Bật wordWrap để nhập được nhiều dòng
             ],
-            mergeCells: [
-                { row: 0, col: 0, rowspan: 5, colspan: 1 },
-                { row: 5, col: 0, rowspan: 5, colspan: 1 },
-            ],
+            mergeCells: [ { row: 0, col: 0, rowspan: 5, colspan: 1 }, { row: 5, col: 0, rowspan: 5, colspan: 1 } ],
+            autoRowSize: true, // Tự động điều chỉnh kích thước hàng khi có nhiều dòng văn bản
             width: '100%',
             height: '100%',
             licenseKey: 'non-commercial-and-evaluation'
@@ -558,73 +488,114 @@ function showScheduleSpreadsheet() {
 
         dom.modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
             const updatedData = handsontableInstance.getSourceData();
-            sessions.forEach((session, sessionIndex) => {
+            sessions.forEach((session, sIdx) => {
                 for (let i = 0; i < 5; i++) {
-                     const rowIndex = sessionIndex * 5 + i;
+                     const rIdx = sIdx * 5 + i;
                      days.forEach(day => {
                          if (!appData.schedule[day]) appData.schedule[day] = { morning: [], afternoon: [] };
                          if (!appData.schedule[day][session.key]) appData.schedule[day][session.key] = Array(5).fill({ subject: '' });
-                         if (!appData.schedule[day][session.key][i]) appData.schedule[day][session.key][i] = { subject: '' };
-
-                         appData.schedule[day][session.key][i] = { subject: updatedData[rowIndex][day] };
+                         appData.schedule[day][session.key][i] = { subject: updatedData[rIdx][day] };
                      });
                 }
             });
-            saveAppDataToStorage(appData);
-            markAsDirty();
-            renderScheduleSection();
-            closeModal();
+            markAsDirty(); renderScheduleSection(); closeModal();
         };
     }});
+}
+
+async function showMediaForm(mediaId = null) {
+    const media = mediaId ? appData.media.find(m => m.id === mediaId) : { type: 'image', url: '', caption: '' };
+    const contentHTML = `
+        <form id="media-form" data-id="${mediaId || ''}" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Loại Media</label>
+                <select name="type" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2">
+                    <option value="image" ${media.type === 'image' ? 'selected' : ''}>Hình ảnh</option>
+                    <option value="video" ${media.type === 'video' ? 'selected' : ''}>Video</option>
+                    <option value="audio" ${media.type === 'audio' ? 'selected' : ''}>Âm thanh</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">URL</label>
+                <input type="text" name="url" value="${media.url}" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Mô tả / Chú thích</label>
+                <textarea name="caption" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2">${media.caption || ''}</textarea>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100">Hủy</button>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Lưu lại</button>
+            </div>
+        </form>`;
+    openModal({ title: mediaId ? 'Sửa Media' : 'Thêm Media từ URL', contentHTML });
+}
+
+async function showChangePasswordForm() {
+    const contentHTML = `
+        <form id="change-password-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Mật khẩu hiện tại</label>
+                <input type="password" name="currentPassword" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Mật khẩu mới</label>
+                <input type="password" name="newPassword" required minlength="6" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 p-2">
+            </div>
+            <p id="password-error" class="text-red-500 text-sm"></p>
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg dark:bg-gray-600 dark:text-gray-100">Hủy</button>
+                <button type="submit" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">Cập nhật</button>
+            </div>
+        </form>`;
+    openModal({ title: 'Đổi mật khẩu truy cập', contentHTML, size: 'max-w-md' });
+}
+
+async function handleChangePassword(form) {
+    const currentPassword = form.currentPassword.value;
+    const newPassword = form.newPassword.value;
+    const errorEl = document.getElementById('password-error');
+    errorEl.textContent = 'Đang xử lý...';
+    const result = await updatePassword({ currentPassword, newPassword, authToken: sessionAuthToken });
+    if (result.success) {
+        sessionAuthToken = result.newToken;
+        alert('Đổi mật khẩu thành công!'); closeModal();
+    } else {
+        errorEl.textContent = result.message;
+    }
 }
 
 // --- EVENT LISTENERS --- //
 
 function setupEventListeners() {
     dom.editContainer.addEventListener('change', e => {
-        const action = e.target.dataset.action;
-        if (action === 'upload-media') handleFileUploads(e.target.files);
+        if (e.target.dataset.action === 'upload-media') handleFileUploads(e.target.files);
     });
 
     dom.editContainer.addEventListener('click', e => {
-        const button = e.target.closest('button, [data-action]');
+        const button = e.target.closest('button, [data-action], [data-accordion-id]');
         if (!button) return;
         const { action, accordionId } = button.dataset;
         const id = e.target.closest('[data-id]')?.dataset.id;
         
-        const actions = {
-            'sync': () => handleSync(),
-            'toggle-accordion': () => toggleAccordion(accordionId),
-            'edit-classlist-spreadsheet': showClassListSpreadsheet,
-            'edit-schedule-spreadsheet': showScheduleSpreadsheet,
-            'add-media-url': () => showMediaForm(),
-            'edit-media': () => showMediaForm(id),
-            'delete-media': () => {
-                if (confirm('Bạn có chắc muốn xóa mục này?')) {
-                    appData.media = appData.media.filter(m => m.id !== id);
-                    saveAppDataToStorage(appData); markAsDirty(); renderGallerySection();
-                }
-            },
-            'toggle-select-mode': () => {
-                isSelectionMode = !isSelectionMode;
-                if (!isSelectionMode) selectedMediaIds.clear();
-                renderGallerySection();
-            },
-            'toggle-select-media': () => {
-                if (id) { selectedMediaIds.has(id) ? selectedMediaIds.delete(id) : selectedMediaIds.add(id); renderGallerySection(); }
-            },
-            'select-all-media': () => { appData.media.forEach(item => selectedMediaIds.add(item.id)); renderGallerySection(); },
-            'deselect-all-media': () => { selectedMediaIds.clear(); renderGallerySection(); },
-            'delete-selected-media': () => {
-                if (confirm(`Bạn có chắc muốn xóa ${selectedMediaIds.size} mục đã chọn?`)) {
-                    appData.media = appData.media.filter(m => !selectedMediaIds.has(m.id));
-                    selectedMediaIds.clear(); isSelectionMode = false;
-                    saveAppDataToStorage(appData); markAsDirty(); renderGallerySection();
-                }
-            },
-            'change-password': () => showChangePasswordForm(),
-        };
-        actions[action]?.();
+        if (action === 'sync') handleSync();
+        else if (action === 'toggle-accordion') toggleAccordion(accordionId);
+        else if (action === 'edit-classlist-spreadsheet') showClassListSpreadsheet();
+        else if (action === 'edit-schedule-spreadsheet') showScheduleSpreadsheet();
+        else if (action === 'add-media-url') showMediaForm();
+        else if (action === 'edit-media') showMediaForm(id);
+        else if (action === 'delete-media') {
+            if (confirm('Bạn có chắc muốn xóa mục này?')) { appData.media = appData.media.filter(m => m.id !== id); markAsDirty(); renderGallerySection(); }
+        } else if (action === 'toggle-select-mode') { isSelectionMode = !isSelectionMode; if (!isSelectionMode) selectedMediaIds.clear(); renderGallerySection(); }
+        else if (action === 'toggle-select-media' && id) { selectedMediaIds.has(id) ? selectedMediaIds.delete(id) : selectedMediaIds.add(id); renderGallerySection(); }
+        else if (action === 'select-all-media') { appData.media.forEach(m => selectedMediaIds.add(m.id)); renderGallerySection(); }
+        else if (action === 'deselect-all-media') { selectedMediaIds.clear(); renderGallerySection(); }
+        else if (action === 'delete-selected-media') {
+            if (confirm(`Xóa ${selectedMediaIds.size} mục đã chọn?`)) {
+                appData.media = appData.media.filter(m => !selectedMediaIds.has(m.id));
+                selectedMediaIds.clear(); isSelectionMode = false; markAsDirty(); renderGallerySection();
+            }
+        } else if (action === 'change-password') showChangePasswordForm();
     });
 
     dom.modalContainer.addEventListener('click', e => {
@@ -632,18 +603,15 @@ function setupEventListeners() {
         if (e.target.id === 'modal-backdrop' || action === 'modal-close' || action === 'modal-cancel') closeModal();
     });
 
-    // Delegated form submissions from modal
     dom.modalContainer.addEventListener('submit', async e => {
         e.preventDefault();
         const form = e.target;
         if (form.id === 'media-form') {
             const id = form.dataset.id;
-            const updatedMedia = { id: id || crypto.randomUUID(), type: form.type.value, url: form.url.value, caption: form.caption.value };
-            if (id) { appData.media = appData.media.map(m => m.id === id ? updatedMedia : m); } else { appData.media.push(updatedMedia); }
-            saveAppDataToStorage(appData); markAsDirty(); renderGallerySection(); closeModal();
-        } else if (form.id === 'change-password-form') {
-            await handleChangePassword(form);
-        }
+            const updated = { id: id || crypto.randomUUID(), type: form.type.value, url: form.url.value, caption: form.caption.value };
+            if (id) appData.media = appData.media.map(m => m.id === id ? updated : m); else appData.media.push(updated);
+            markAsDirty(); renderGallerySection(); closeModal();
+        } else if (form.id === 'change-password-form') handleChangePassword(form);
     });
 }
 
@@ -653,17 +621,8 @@ async function init() {
     dom.authContainer = document.getElementById('auth-container');
     dom.editContainer = document.getElementById('edit-container');
     dom.modalContainer = document.getElementById('modal-container');
-    if (!dom.authContainer || !dom.editContainer || !dom.modalContainer) {
-        throw new Error("DOM containers not found.");
-    }
     setupEventListeners();
-    dom.authContainer.innerHTML = `<div class="flex items-center justify-center h-screen">Đang khởi tạo...</div>`;
     renderAuthForm();
 }
 
 document.addEventListener('DOMContentLoaded', init);
-// Placeholder for password change form logic
-async function showChangePasswordForm() {}
-async function handleChangePassword(form) {}
-// Placeholder for media form logic
-async function showMediaForm(mediaId = null) {}

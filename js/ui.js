@@ -1,3 +1,4 @@
+
 export const icons = {
     pencil: `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z" /></svg>`,
     trash: `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>`,
@@ -152,7 +153,7 @@ function renderClassListTable(students, columns) {
     }
 
     const headerHtml = `
-        <th scope="col" class="px-2 py-3 w-12">STT</th>
+        <th scope="col" class="px-2 py-3 w-12 text-center">STT</th>
         ${columns.map(col => `<th scope="col" class="px-6 py-3">${col.label}</th>`).join('')}
     `;
 
@@ -218,11 +219,11 @@ function renderScheduleTable(schedule) {
 
     let tableHtml = `
     <div class="overflow-x-auto shadow-md sm:rounded-lg">
-      <table class="w-full border-collapse text-sm text-center text-gray-500 dark:text-gray-400">
+      <table class="w-full border-collapse text-sm text-center text-gray-500 dark:text-gray-400 table-fixed min-w-[800px]">
         <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
           <tr>
-            <th class="px-4 py-3 border-r dark:border-gray-600" colspan="2">Buổi / Tiết</th>
-            ${daysOfWeek.map(day => `<th class="px-6 py-3">${day}</th>`).join('')}
+            <th class="px-2 py-3 border-r dark:border-gray-600 w-24" colspan="2">Buổi / Tiết</th>
+            ${daysOfWeek.map(day => `<th class="px-4 py-3">${day}</th>`).join('')}
           </tr>
         </thead>
         <tbody>
@@ -231,12 +232,18 @@ function renderScheduleTable(schedule) {
         periods.forEach((period, periodIndex) => {
             tableHtml += `<tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">`;
             if (periodIndex === 0) {
-                tableHtml += `<td rowspan="5" class="px-4 py-4 font-medium text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50 border-r dark:border-gray-600 align-middle w-16">${session.name}</td>`;
+                tableHtml += `<td rowspan="5" class="px-2 py-4 font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700/50 border-r dark:border-gray-600 align-middle w-12">${session.name}</td>`;
             }
-            tableHtml += `<td class="px-4 py-4 font-medium text-gray-900 dark:text-white border-r dark:border-gray-600 w-16">Tiết ${period}</td>`;
+            tableHtml += `<td class="px-2 py-4 font-medium text-gray-600 dark:text-gray-400 border-r dark:border-gray-600 w-12 text-xs uppercase">T${period}</td>`;
             daysOfWeek.forEach(day => {
                 const subject = schedule[day]?.[session.key]?.[periodIndex]?.subject || '';
-                tableHtml += `<td class="border-l dark:border-gray-700 p-1 h-16"><span class="p-2 block font-semibold">${subject}</span></td>`;
+                // Thêm whitespace-pre-line để hỗ trợ hiển thị nhiều dòng và min-h để ô có không gian
+                tableHtml += `
+                    <td class="border-l dark:border-gray-700 p-0 align-middle">
+                        <div class="p-2 w-full h-full min-h-[4rem] flex items-center justify-center font-semibold text-gray-900 dark:text-gray-100 whitespace-pre-line break-words leading-tight">
+                            ${subject}
+                        </div>
+                    </td>`;
             });
             tableHtml += `</tr>`;
         });
