@@ -152,16 +152,19 @@ function renderClassListTable(students, columns) {
         return renderEmptyState(icons.users, "Danh sách lớp trống", "Hiện chưa có thông tin học sinh nào được thêm vào.");
     }
 
+    // Check if there is already a column labeled 'STT' (case-insensitive)
+    const hasSttColumn = columns.some(col => col.label.toUpperCase() === 'STT');
+
     const headerHtml = `
-        <th scope="col" class="px-2 py-3 w-12 text-center">STT</th>
+        ${!hasSttColumn ? '<th scope="col" class="px-2 py-3 w-12 text-center">STT</th>' : ''}
         ${columns.map(col => `<th scope="col" class="px-6 py-3">${col.label}</th>`).join('')}
     `;
 
     const bodyHtml = students.map((student, index) => `
         <tr class="bg-white dark:bg-gray-800 even:bg-gray-50 dark:even:bg-gray-800/50 border-b dark:border-gray-700">
-            <td class="px-2 py-4 text-center font-medium text-gray-500 dark:text-gray-400">${index + 1}</td>
+            ${!hasSttColumn ? `<td class="px-2 py-4 text-center font-medium text-gray-500 dark:text-gray-400">${index + 1}</td>` : ''}
             ${columns.map(col => `
-                <td class="px-6 py-4 ${col.key === 'name' ? 'font-semibold text-gray-900 dark:text-white' : ''}">
+                <td class="px-6 py-4 ${col.label.toUpperCase() === 'HỌ VÀ TÊN' || col.key === 'name' ? 'font-semibold text-gray-900 dark:text-white' : ''}">
                     ${student[col.key] || ''}
                 </td>
             `).join('')}

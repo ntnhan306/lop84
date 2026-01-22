@@ -1,5 +1,5 @@
 
-// v4.1 - Enhanced Class List Editing
+// v4.2 - Final Polish on Class List Spreadsheet
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
@@ -407,7 +407,7 @@ function closeModal() {
 function showClassListSpreadsheet() {
     const contentHTML = '<div id="spreadsheet-container" class="h-[65vh] w-full"></div>' +
         `<div class="p-4 border-t dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50">
-            <p class="text-xs text-gray-500 mr-auto self-center italic">Chuột phải vào tiêu đề cột để thêm/xóa/đổi tên cột.</p>
+            <p class="text-xs text-gray-500 mr-auto self-center italic">STT tự động điền theo hàng. Chuột phải tiêu đề để thêm/xóa/đổi tên cột.</p>
             <button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button>
             <button type="button" data-action="modal-save" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu và Đóng</button>
         </div>`;
@@ -416,10 +416,25 @@ function showClassListSpreadsheet() {
         const spreadsheetEl = document.getElementById('spreadsheet-container');
         if (!spreadsheetEl) return;
 
-        // Chuyển đổi dữ liệu objects sang 2D array để linh hoạt thêm cột
-        const colHeaders = appData.studentColumns.map(c => c.label);
-        const data = appData.students.map(student => {
-            return appData.studentColumns.map(col => student[col.key] || '');
+        // Ensure we have at least STT and Họ và Tên
+        let colHeaders = appData.studentColumns.map(c => c.label);
+        if (colHeaders.length === 0) {
+            colHeaders = ['STT', 'Họ và Tên'];
+        } else {
+            // Check if STT and Họ và Tên exist, otherwise prepend/add them
+            if (!colHeaders.some(h => h.toUpperCase() === 'STT')) colHeaders.unshift('STT');
+            if (!colHeaders.some(h => h.toUpperCase() === 'HỌ VÀ TÊN')) colHeaders.push('Họ và Tên');
+        }
+
+        const data = appData.students.map((student, idx) => {
+             // Create row by matching existing keys or leaving empty
+             return colHeaders.map(label => {
+                if (label.toUpperCase() === 'STT') return student.stt || (idx + 1).toString();
+                const col = appData.studentColumns.find(c => c.label === label);
+                if (col) return student[col.key] || '';
+                if (label.toUpperCase() === 'HỌ VÀ TÊN') return student.name || '';
+                return '';
+             });
         });
 
         if (document.documentElement.classList.contains('dark')) spreadsheetEl.classList.add('htDark');
@@ -442,15 +457,37 @@ function showClassListSpreadsheet() {
                     "rename_column": {
                         name: 'Đổi tên cột này',
                         callback: function(key, selection) {
-                            const col = selection[0].start.col;
-                            const oldLabel = this.getColHeader(col);
+                            const colIdx = selection[0].start.col;
+                            const oldLabel = this.getColHeader(colIdx);
                             const newLabel = prompt("Nhập tên mới cho cột:", oldLabel);
                             if (newLabel !== null && newLabel.trim() !== "") {
-                                const currentHeaders = this.getSettings().colHeaders;
-                                currentHeaders[col] = newLabel.trim();
+                                const currentHeaders = [...this.getColHeader()];
+                                currentHeaders[colIdx] = newLabel.trim();
                                 this.updateSettings({ colHeaders: currentHeaders });
                             }
                         }
+                    }
+                }
+            },
+            // Auto-fill STT logic
+            afterChange: function(changes, source) {
+                if (source === 'loadData') return;
+                changes.forEach(([row, prop, oldValue, newValue]) => {
+                    // If user edited any cell in a row that doesn't have an STT, fill STT
+                    const sttColIdx = this.getColHeader().findIndex(h => h.toUpperCase() === 'STT');
+                    if (sttColIdx !== -1 && prop !== sttColIdx) {
+                        const currentStt = this.getDataAtCell(row, sttColIdx);
+                        if (!currentStt || currentStt === '') {
+                             this.setDataAtCell(row, sttColIdx, (row + 1).toString(), 'auto');
+                        }
+                    }
+                });
+            },
+            afterCreateRow: function(index, amount) {
+                const sttColIdx = this.getColHeader().findIndex(h => h.toUpperCase() === 'STT');
+                if (sttColIdx !== -1) {
+                    for (let i = 0; i < amount; i++) {
+                        this.setDataAtCell(index + i, sttColIdx, (index + i + 1).toString(), 'auto');
                     }
                 }
             },
@@ -465,12 +502,12 @@ function showClassListSpreadsheet() {
             const currentHeaders = handsontableInstance.getColHeader();
             const rawData = handsontableInstance.getData(); // Trả về 2D array
 
-            // Lọc bỏ các dòng hoàn toàn trống (bao gồm dòng spare row nếu chưa nhập gì)
+            // Lọc bỏ các dòng hoàn toàn trống
             const filteredData = rawData.filter(row => row.some(cell => cell !== null && String(cell).trim() !== ''));
 
             // Tái cấu trúc studentColumns
             appData.studentColumns = currentHeaders.map((label, idx) => ({
-                key: `col_${idx}_${Date.now()}`, // Tạo key duy nhất để tránh xung đột
+                key: label.toUpperCase() === 'STT' ? 'stt' : (label.toUpperCase() === 'HỌ VÀ TÊN' ? 'name' : `col_${idx}_${Date.now()}`),
                 label: label
             }));
 

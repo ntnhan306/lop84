@@ -14,13 +14,10 @@ const getInitialData = () => {
         return acc;
     }, {});
     return {
-        students: [{ id: 'sample-1', stt: '1', name: 'Nguyễn Văn A', dob: '2012-01-01', phone: '090xxxxxxx', notes: 'Học sinh mẫu'}],
+        students: [{ id: 'sample-1', stt: '1', name: 'Nguyễn Văn A' }],
         studentColumns: [
             { key: 'stt', label: 'STT' },
-            { key: 'name', label: 'Họ và Tên' },
-            { key: 'dob', label: 'Ngày sinh' },
-            { key: 'phone', label: 'Số điện thoại' },
-            { key: 'notes', label: 'Ghi chú' },
+            { key: 'name', label: 'Họ và Tên' }
         ],
         schedule: initialSchedule,
         media: [],
