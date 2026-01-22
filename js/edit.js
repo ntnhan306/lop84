@@ -1,5 +1,5 @@
 
-// v4.0 - Refactored for Stability
+// v4.1 - Enhanced Class List Editing
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
@@ -407,6 +407,7 @@ function closeModal() {
 function showClassListSpreadsheet() {
     const contentHTML = '<div id="spreadsheet-container" class="h-[65vh] w-full"></div>' +
         `<div class="p-4 border-t dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800/50">
+            <p class="text-xs text-gray-500 mr-auto self-center italic">Chuột phải vào tiêu đề cột để thêm/xóa/đổi tên cột.</p>
             <button type="button" data-action="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-500 transition-colors">Hủy</button>
             <button type="button" data-action="modal-save" class="px-4 py-2 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-colors">Lưu và Đóng</button>
         </div>`;
@@ -415,33 +416,77 @@ function showClassListSpreadsheet() {
         const spreadsheetEl = document.getElementById('spreadsheet-container');
         if (!spreadsheetEl) return;
 
+        // Chuyển đổi dữ liệu objects sang 2D array để linh hoạt thêm cột
+        const colHeaders = appData.studentColumns.map(c => c.label);
         const data = appData.students.map(student => {
-            const row = {};
-            appData.studentColumns.forEach(col => { row[col.key] = student[col.key] || ''; });
-            return row;
+            return appData.studentColumns.map(col => student[col.key] || '');
         });
 
         if (document.documentElement.classList.contains('dark')) spreadsheetEl.classList.add('htDark');
 
         handsontableInstance = new Handsontable(spreadsheetEl, {
             data: data,
-            columns: appData.studentColumns.map(col => ({ data: col.key, title: col.label, readOnly: col.readonly || false })),
+            colHeaders: colHeaders,
             rowHeaders: true,
+            minSpareRows: 1, // Luôn để 1 dòng trống ở cuối
+            contextMenu: {
+                items: {
+                    "row_above": { name: "Thêm hàng phía trên" },
+                    "row_below": { name: "Thêm hàng phía dưới" },
+                    "remove_row": { name: "Xóa hàng" },
+                    "hsep1": "---------",
+                    "col_left": { name: "Thêm cột bên trái" },
+                    "col_right": { name: "Thêm cột bên phải" },
+                    "remove_col": { name: "Xóa cột" },
+                    "hsep2": "---------",
+                    "rename_column": {
+                        name: 'Đổi tên cột này',
+                        callback: function(key, selection) {
+                            const col = selection[0].start.col;
+                            const oldLabel = this.getColHeader(col);
+                            const newLabel = prompt("Nhập tên mới cho cột:", oldLabel);
+                            if (newLabel !== null && newLabel.trim() !== "") {
+                                const currentHeaders = this.getSettings().colHeaders;
+                                currentHeaders[col] = newLabel.trim();
+                                this.updateSettings({ colHeaders: currentHeaders });
+                            }
+                        }
+                    }
+                }
+            },
             manualColumnMove: true,
             manualColumnResize: true,
-            contextMenu: true,
             width: '100%',
             height: '100%',
             licenseKey: 'non-commercial-and-evaluation'
         });
 
         dom.modalContainer.querySelector('[data-action="modal-save"]').onclick = () => {
-            const dataToSave = handsontableInstance.getSourceData();
-            appData.students = dataToSave.filter(row => Object.values(row).some(v => v !== '')).map((row, idx) => ({
-                id: (appData.students[idx] && appData.students[idx].id) || crypto.randomUUID(),
-                ...row
+            const currentHeaders = handsontableInstance.getColHeader();
+            const rawData = handsontableInstance.getData(); // Trả về 2D array
+
+            // Lọc bỏ các dòng hoàn toàn trống (bao gồm dòng spare row nếu chưa nhập gì)
+            const filteredData = rawData.filter(row => row.some(cell => cell !== null && String(cell).trim() !== ''));
+
+            // Tái cấu trúc studentColumns
+            appData.studentColumns = currentHeaders.map((label, idx) => ({
+                key: `col_${idx}_${Date.now()}`, // Tạo key duy nhất để tránh xung đột
+                label: label
             }));
-            markAsDirty(); renderClassListSection(); closeModal();
+
+            // Tái cấu trúc students
+            appData.students = filteredData.map(row => {
+                const student = { id: crypto.randomUUID() };
+                row.forEach((cell, colIdx) => {
+                    const key = appData.studentColumns[colIdx].key;
+                    student[key] = cell || '';
+                });
+                return student;
+            });
+
+            markAsDirty(); 
+            renderClassListSection(); 
+            closeModal();
         };
     }});
 }
