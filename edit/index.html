@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -15,6 +16,7 @@
       ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px;}
       ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
       ::-webkit-scrollbar-thumb:hover { background: #555; }
+      
       #auth-container, #edit-container { min-height: 100vh; }
       
       /* Handsontable dark theme adjustments */
@@ -28,24 +30,40 @@
       .htDark .handsontable .htSelection { background-color: rgba(79, 70, 229, 0.2); }
       .htDark .handsontable .ht__manualColumnMove.active, .htDark .handsontable .ht__manualRowMove.active { background-color: #4f46e5; }
       
-      /* Accordion Styles */
+      /* Modern Accordion Styles using Grid trick for auto-height animation */
       .accordion-content {
-        max-height: 0;
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 0.3s ease-in-out;
         overflow: hidden;
-        transition: max-height 0.5s cubic-bezier(0, 1, 0, 1);
       }
       .accordion-content.open {
-        max-height: 5000px; /* Large enough value to not clip content */
-        transition: max-height 1s ease-in-out;
+        grid-template-rows: 1fr;
       }
+      /* Inner wrapper needs min-height: 0 to allow the grid transition */
+      .accordion-content > div {
+        min-height: 0;
+        visibility: hidden;
+        transition: visibility 0.3s;
+      }
+      .accordion-content.open > div {
+        visibility: visible;
+      }
+
       .accordion-header .accordion-icon {
         transition: transform 0.3s ease;
       }
       .accordion-header.open .accordion-icon {
         transform: rotate(180deg);
       }
+      
       #upload-progress-container {
         transition: opacity 0.3s ease;
+      }
+
+      /* Fix for gallery scrolling */
+      #edit-main {
+        overflow-y: visible;
       }
     </style>
 </head>
