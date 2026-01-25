@@ -190,13 +190,28 @@ function renderClassListTable(students, columns, { directEditMode = false } = {}
         ` : ''}
     `;
 
-    const bodyHtml = students.map((student, index) => `
-        <tr class="bg-white dark:bg-gray-800 even:bg-gray-50 dark:even:bg-gray-800/50 border-b dark:border-gray-700 group">
-            ${!hasSttColumn ? `<td class="px-2 py-4 text-center font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30">${index + 1}</td>` : ''}
+    const bodyHtml = students.map((student, index) => {
+        const rowId = student.id;
+        return `
+        <tr 
+            data-id="${rowId}" 
+            data-index="${index}" 
+            class="bg-white dark:bg-gray-800 even:bg-gray-50 dark:even:bg-gray-800/50 border-b dark:border-gray-700 group transition-colors duration-200" 
+            ${directEditMode ? 'draggable="true" data-action="drag-row"' : ''}
+        >
+            ${!hasSttColumn ? `
+                <td class="px-2 py-4 text-center font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30 w-12 relative overflow-hidden">
+                    ${directEditMode ? `
+                        <div class="stt-container w-full h-full flex items-center justify-center cursor-move group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/20">
+                            <span class="stt-number block group-hover:hidden">${index + 1}</span>
+                            <span class="stt-handle hidden group-hover:block text-indigo-500">${icons.dragHandle}</span>
+                        </div>
+                    ` : (index + 1)}
+                </td>` : ''}
             ${columns.map(col => `
                 <td class="px-6 py-4">
                     ${directEditMode ? `
-                        <input type="text" value="${student[col.key] || ''}" data-action="update-cell" data-row-index="${index}" data-column-key="${col.key}" class="w-full bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded px-1">
+                        <input type="text" value="${student[col.key] || ''}" data-action="update-cell" data-row-index="${index}" data-column-key="${col.key}" class="w-full bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded px-1 transition-all">
                     ` : `
                         <div class="${col.label.toUpperCase() === 'HỌ VÀ TÊN' || col.key === 'name' ? 'font-semibold text-gray-900 dark:text-white' : ''}">
                             ${student[col.key] || ''}
@@ -212,15 +227,15 @@ function renderClassListTable(students, columns, { directEditMode = false } = {}
                 </td>
             ` : ''}
         </tr>
-    `).join('');
+    `}).join('');
     
     return `
-        <div class="overflow-x-auto relative shadow-md sm:rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+        <div id="classlist-table-container" class="overflow-x-auto relative shadow-md sm:rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
             <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
                     <tr>${headerHtml}</tr>
                 </thead>
-                <tbody>${bodyHtml}</tbody>
+                <tbody id="classlist-table-body">${bodyHtml}</tbody>
             </table>
             ${directEditMode ? `
                 <div class="p-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-center">

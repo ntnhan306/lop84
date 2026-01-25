@@ -1,5 +1,5 @@
 
-// v4.4 - Direct Editing Experience (No Spreadsheet Modals)
+// v4.5 - Direct Editing with Multi-line Paste & Drag-and-Drop Reordering
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
@@ -12,6 +12,9 @@ let isSyncing = false;
 // --- Section States ---
 let classListEditMode = false;
 let scheduleEditMode = false;
+
+// --- Drag & Drop State ---
+let draggedRowIndex = null;
 
 // --- UI State ---
 let isSelectionMode = false;
@@ -467,10 +470,10 @@ async function handleChangePassword(form) {
 
 // --- CLASS LIST ROW/COL HANDLERS --- //
 
-function addClassListRow() {
-    const newStudent = { id: crypto.randomUUID() };
+function addClassListRow(data = {}) {
+    const newStudent = { id: crypto.randomUUID(), ...data };
     appData.studentColumns.forEach(col => {
-        newStudent[col.key] = '';
+        if (!(col.key in newStudent)) newStudent[col.key] = '';
     });
     // Ensure STT is correctly filled
     newStudent.stt = (appData.students.length + 1).toString();
@@ -512,6 +515,81 @@ function removeClassListColumn(index) {
     }
 }
 
+// --- PASTE HANDLER --- //
+
+function handleClassListPaste(e) {
+    const text = e.clipboardData.getData('text');
+    if (!text.includes('\n')) return; // Only process multi-line pastes
+
+    e.preventDefault();
+    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+    if (lines.length === 0) return;
+
+    const { rowIndex, columnKey } = e.target.dataset;
+    const startIdx = parseInt(rowIndex);
+
+    lines.forEach((line, i) => {
+        const targetIdx = startIdx + i;
+        if (targetIdx < appData.students.length) {
+            appData.students[targetIdx][columnKey] = line;
+        } else {
+            // Create new row for extra lines
+            const newRow = {};
+            newRow[columnKey] = line;
+            addClassListRow(newRow);
+        }
+    });
+
+    markAsDirty();
+    renderClassListSection();
+}
+
+// --- DRAG AND DROP HANDLERS --- //
+
+function handleDragStart(e) {
+    const row = e.target.closest('tr');
+    if (!row) return;
+    draggedRowIndex = parseInt(row.dataset.index);
+    e.dataTransfer.effectAllowed = 'move';
+    row.classList.add('opacity-50', 'bg-indigo-100', 'dark:bg-indigo-900/50');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const row = e.target.closest('tr');
+    if (row && parseInt(row.dataset.index) !== draggedRowIndex) {
+        row.classList.add('bg-indigo-50', 'dark:bg-indigo-900/20');
+    }
+}
+
+function handleDragLeave(e) {
+    const row = e.target.closest('tr');
+    if (row) {
+        row.classList.remove('bg-indigo-50', 'dark:bg-indigo-900/20');
+    }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const targetRow = e.target.closest('tr');
+    if (!targetRow || draggedRowIndex === null) return;
+
+    const targetIndex = parseInt(targetRow.dataset.index);
+    if (targetIndex === draggedRowIndex) return;
+
+    // Move item in array
+    const [movedItem] = appData.students.splice(draggedRowIndex, 1);
+    appData.students.splice(targetIndex, 0, movedItem);
+
+    // Re-index STT
+    appData.students.forEach((s, idx) => s.stt = (idx + 1).toString());
+
+    draggedRowIndex = null;
+    markAsDirty();
+    renderClassListSection();
+}
+
 // --- EVENT LISTENERS --- //
 
 function setupEventListeners() {
@@ -549,6 +627,22 @@ function setupEventListeners() {
             appData.schedule[day][sessionKey][periodIndex] = { subject: e.target.value };
             markAsDirty();
         }
+    });
+
+    // Special Paste Event
+    dom.editContainer.addEventListener('paste', e => {
+        if (e.target.dataset.action === 'update-cell') handleClassListPaste(e);
+    });
+
+    // Drag & Drop Events
+    dom.editContainer.addEventListener('dragstart', handleDragStart);
+    dom.editContainer.addEventListener('dragover', handleDragOver);
+    dom.editContainer.addEventListener('dragleave', handleDragLeave);
+    dom.editContainer.addEventListener('drop', handleDrop);
+    dom.editContainer.addEventListener('dragend', e => {
+        const row = e.target.closest('tr');
+        if (row) row.classList.remove('opacity-50', 'bg-indigo-100', 'dark:bg-indigo-900/50');
+        document.querySelectorAll('tr').forEach(r => r.classList.remove('bg-indigo-50', 'dark:bg-indigo-900/20'));
     });
 
     dom.editContainer.addEventListener('click', e => {
