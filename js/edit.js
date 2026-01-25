@@ -1,5 +1,5 @@
 
-// v4.7 - Advanced Drag & Drop Reordering and Multi-line Paste
+// v4.8 - Optimized Paste logic to keep empty lines and handle multi-line inputs efficiently
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
@@ -523,25 +523,35 @@ function handleClassListPaste(e) {
     if (!text || !text.includes('\n')) return;
 
     e.preventDefault();
-    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-    if (lines.length === 0) return;
-
+    // Split by lines, allowing empty strings to represent blank lines as requested.
+    const lines = text.split(/\r?\n/);
+    
     const { rowIndex, columnKey } = e.target.dataset;
     const startIdx = parseInt(rowIndex);
+
+    let needsRender = false;
 
     lines.forEach((line, i) => {
         const targetIdx = startIdx + i;
         if (targetIdx < appData.students.length) {
             appData.students[targetIdx][columnKey] = line;
+            needsRender = true;
         } else {
-            const newRow = {};
-            newRow[columnKey] = line;
-            addClassListRow(newRow);
+            // Create a row object manually for better efficiency with many lines
+            const newRow = { id: crypto.randomUUID() };
+            appData.studentColumns.forEach(col => {
+                newRow[col.key] = col.key === columnKey ? line : '';
+            });
+            newRow.stt = (appData.students.length + 1).toString();
+            appData.students.push(newRow);
+            needsRender = true;
         }
     });
 
-    markAsDirty();
-    renderClassListSection();
+    if (needsRender) {
+        markAsDirty();
+        renderClassListSection();
+    }
 }
 
 // --- DRAG AND DROP HANDLERS --- //
@@ -550,7 +560,7 @@ function handleMouseDown(e) {
     const handle = e.target.closest('.stt-handle');
     const row = e.target.closest('tr[draggable]');
     if (row) {
-        // Chỉ cho phép kéo nếu nhấn vào icon 3 gạch
+        // Only enable dragging if the handle (three bars) was clicked
         row.setAttribute('draggable', !!handle ? 'true' : 'false');
     }
 }
@@ -576,7 +586,6 @@ function handleDragOver(e) {
     const rect = row.getBoundingClientRect();
     const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
     
-    // Tạo hiệu ứng "chạy" bằng cách chèn trực tiếp vào DOM (phần này tạo khoảng trống)
     const container = row.parentNode;
     container.insertBefore(draggedRowElement, next ? row.nextSibling : row);
 }
@@ -588,11 +597,11 @@ function handleDrop(e) {
     const rows = Array.from(document.querySelectorAll('#classlist-table-body tr'));
     const newOrderIndices = rows.map(r => parseInt(r.dataset.index));
     
-    // Cập nhật lại appData dựa trên thứ tự DOM mới
+    // Sync appData with the new DOM order
     const newStudents = newOrderIndices.map(idx => appData.students[idx]);
     appData.students = newStudents;
 
-    // Đánh số lại STT
+    // Correct STT numbers
     appData.students.forEach((s, idx) => s.stt = (idx + 1).toString());
 
     draggedRowElement.classList.remove('dragging');
@@ -654,7 +663,7 @@ function setupEventListeners() {
         if (draggedRowElement) {
             draggedRowElement.classList.remove('dragging');
             draggedRowElement = null;
-            renderClassListSection(); // Reset lại UI nếu drag bị hủy
+            renderClassListSection();
         }
     });
 
