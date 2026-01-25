@@ -1,12 +1,12 @@
 
-// v4.5 - Direct Editing with Multi-line Paste & Drag-and-Drop Reordering
+// v4.7 - Advanced Drag & Drop Reordering and Multi-line Paste
 import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
 
 // --- Global State ---
 let appData = null;
 let sessionAuthToken = null;
-let isDirty = false; // Tracks if there are unsaved changes
+let isDirty = false;
 let isSyncing = false;
 
 // --- Section States ---
@@ -14,12 +14,13 @@ let classListEditMode = false;
 let scheduleEditMode = false;
 
 // --- Drag & Drop State ---
+let draggedRowElement = null;
 let draggedRowIndex = null;
 
 // --- UI State ---
 let isSelectionMode = false;
 let selectedMediaIds = new Set();
-let openAccordionId = 'gallery-section'; // First section is open by default
+let openAccordionId = 'gallery-section';
 
 // --- DOM Element Cache ---
 const dom = {
@@ -64,51 +65,54 @@ function renderEditPage() {
         { id: 'schedule-section', title: 'Quản lý Thời khóa biểu', icon: icons.calendar }
     ];
     const accordionHTML = sections.map(section => `
-        <div class="accordion-item bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden transition-all duration-300">
+        <div class="accordion-item bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden transition-all duration-300 border border-gray-100 dark:border-gray-800">
             <h2 id="${section.id}-header">
                 <button type="button" data-action="toggle-accordion" data-accordion-id="${section.id}" class="accordion-header flex items-center justify-between w-full p-5 font-medium text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none">
-                    <span class="flex items-center gap-3 text-xl">${section.icon} ${section.title}</span>
+                    <span class="flex items-center gap-3 text-xl font-bold">${section.icon} ${section.title}</span>
                     <span class="accordion-icon">${icons.chevronDown}</span>
                 </button>
             </h2>
-            <div id="${section.id}-content" class="accordion-content"><div class="p-6 border-t border-gray-200 dark:border-gray-700 space-y-4"></div></div>
+            <div id="${section.id}-content" class="accordion-content">
+                <div class="p-6 space-y-4">
+                    <!-- Content injected here -->
+                </div>
+            </div>
         </div>`).join('');
 
     dom.editContainer.innerHTML = `
         <div class="min-h-screen bg-gray-50 dark:bg-gray-800 p-4 sm:p-6 lg:p-8">
             <div class="max-w-7xl mx-auto">
-                <header class="flex flex-wrap justify-between items-center gap-4 mb-8 pb-4 border-b-2 border-teal-500">
+                <header class="flex flex-wrap justify-between items-center gap-4 mb-8 pb-4 border-b-2 border-indigo-500">
                     <div>
-                        <h1 class="text-4xl font-bold text-teal-600 dark:text-teal-400">Chỉnh sửa (v4.0)</h1>
-                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Giao diện quản trị</p>
+                        <h1 class="text-4xl font-bold text-indigo-600 dark:text-indigo-400">Quản trị Lớp 8/4</h1>
+                        <p class="text-lg text-gray-600 dark:text-gray-300 mt-1">Hệ thống cập nhật dữ liệu v4.0</p>
                     </div>
                     <div class="flex items-center flex-wrap gap-2">
                         <button data-action="change-password" class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 transition-colors">${icons.key}<span>Đổi Mật khẩu</span></button>
                         <a href="../view/" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition-colors">${icons.gallery}<span>Xem trang</span></a>
                     </div>
                 </header>
-                <main id="edit-main" class="space-y-12">
+                <main id="edit-main" class="space-y-8">
                     <section id="sync-section">
-                        <div id="sync-wrapper" class="flex items-center gap-4 p-4 rounded-lg border-l-4 transition-colors">
+                        <div id="sync-wrapper" class="flex items-center gap-4 p-4 rounded-lg border-l-4 transition-all shadow-sm">
                             <div id="sync-icon"></div>
                             <div class="flex-grow">
-                                <p id="sync-title" class="font-semibold"></p>
+                                <p id="sync-title" class="font-bold"></p>
                                 <p id="sync-message" class="text-sm"></p>
                             </div>
-                            <button id="sync-btn" data-action="sync" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-all"></button>
+                            <button id="sync-btn" data-action="sync" class="inline-flex items-center gap-2 px-6 py-2 bg-indigo-500 text-white font-bold rounded-lg shadow-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-gray-400 dark:disabled:bg-gray-600 transition-all"></button>
                         </div>
                     </section>
-                    <div class="space-y-4">${accordionHTML}</div>
+                    <div class="grid gap-6">${accordionHTML}</div>
                 </main>
-                <footer class="text-center mt-12 text-gray-500 dark:text-gray-400">
-                    <p>&copy; ${new Date().getFullYear()} Lớp 8/4. Chế độ chỉnh sửa.</p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">v4.0</p>
+                <footer class="text-center mt-12 text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-8">
+                    <p>&copy; ${new Date().getFullYear()} Lớp 8/4. Chế độ chỉnh sửa an toàn.</p>
                 </footer>
             </div>
         </div>`;
     renderAllSections();
     if (openAccordionId) toggleAccordion(openAccordionId, true);
-    updateSyncState({ status: 'synced', message: 'Dữ liệu đã được tải về và sẵn sàng để chỉnh sửa.' });
+    updateSyncState({ status: 'synced' });
 }
 
 function renderAllSections() {
@@ -173,35 +177,35 @@ function updateSyncState({ status, message = '' }) {
     const titleEl = document.getElementById('sync-title');
     const messageEl = document.getElementById('sync-message');
     const button = document.getElementById('sync-btn');
-    wrapper.className = 'flex items-center gap-4 p-4 rounded-lg border-l-4 transition-colors';
+    wrapper.className = 'flex items-center gap-4 p-4 rounded-lg border-l-4 transition-all shadow-sm';
     switch(status) {
         case 'dirty':
             wrapper.classList.add('bg-yellow-50', 'dark:bg-yellow-900/20', 'border-yellow-400');
             iconEl.innerHTML = icons.warning; iconEl.className = 'text-yellow-500';
-            titleEl.textContent = 'Có thay đổi chưa lưu';
-            messageEl.textContent = message || 'Nhấn nút bên cạnh để lưu và đồng bộ dữ liệu.';
-            button.disabled = false; button.innerHTML = `${icons.sync}<span>Lưu và Đồng bộ</span>`;
+            titleEl.textContent = 'Phát hiện thay đổi';
+            messageEl.textContent = message || 'Lưu ngay để tránh mất dữ liệu.';
+            button.disabled = false; button.innerHTML = `${icons.sync}<span>Đồng bộ ngay</span>`;
             break;
         case 'syncing':
             wrapper.classList.add('bg-blue-50', 'dark:bg-blue-900/20', 'border-blue-400');
             iconEl.innerHTML = `<svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
             titleEl.textContent = message || 'Đang đồng bộ...';
-            messageEl.textContent = 'Đang gửi dữ liệu đến máy chủ Cloudflare.';
-            button.disabled = true; button.innerHTML = `<span>Đang xử lý...</span>`;
+            messageEl.textContent = 'Máy chủ đang xử lý yêu cầu của bạn.';
+            button.disabled = true; button.innerHTML = `<span>Đang lưu...</span>`;
             break;
         case 'synced':
             wrapper.classList.add('bg-green-50', 'dark:bg-green-900/20', 'border-green-400');
             iconEl.innerHTML = icons.check; iconEl.className = 'text-green-500';
-            titleEl.textContent = 'Đã đồng bộ';
-            messageEl.textContent = message || 'Tất cả dữ liệu đã được cập nhật thành công.';
+            titleEl.textContent = 'Hệ thống sẵn sàng';
+            messageEl.textContent = message || 'Dữ liệu đang được đồng bộ hóa an toàn.';
             button.disabled = true; button.innerHTML = `${icons.check}<span>Đã lưu</span>`;
             isDirty = false;
             break;
         case 'error':
             wrapper.classList.add('bg-red-50', 'dark:bg-red-900/20', 'border-red-400');
             iconEl.innerHTML = icons.error; iconEl.className = 'text-red-500';
-            titleEl.textContent = 'Đồng bộ thất bại';
-            messageEl.textContent = message || 'Đã xảy ra lỗi. Vui lòng thử lại.';
+            titleEl.textContent = 'Lỗi hệ thống';
+            messageEl.textContent = message || 'Không thể đồng bộ. Vui lòng thử lại sau.';
             button.disabled = false; button.innerHTML = `<span>Thử lại</span>`;
             isDirty = true;
             break;
@@ -213,7 +217,7 @@ async function handleSync() {
     isSyncing = true;
     updateSyncState({ status: 'syncing' });
     if (!sessionAuthToken) {
-        updateSyncState({ status: 'error', message: 'Lỗi xác thực. Vui lòng đăng nhập lại.' });
+        updateSyncState({ status: 'error', message: 'Hết hạn phiên. Vui lòng đăng nhập lại.' });
         isSyncing = false; return;
     }
     const result = await saveAppData(appData, sessionAuthToken);
@@ -251,7 +255,7 @@ async function handleLogin(e) {
 async function showEditPage() {
     dom.authContainer.innerHTML = `<div class="flex flex-col items-center justify-center h-screen space-y-4">
         <svg class="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-        <span>Đang tải dữ liệu từ máy chủ...</span>
+        <span class="text-indigo-600 font-medium">Khởi tạo dữ liệu...</span>
     </div>`;
     try {
         appData = await fetchAppData();
@@ -260,7 +264,7 @@ async function showEditPage() {
         dom.editContainer.classList.remove('hidden');
         renderEditPage();
     } catch (error) {
-        dom.authContainer.innerHTML = `<div class="flex items-center justify-center h-screen text-red-500 p-4 text-center">Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối và thử lại. <br/><small class="block mt-2 font-mono text-xs opacity-70">${error.message}</small></div>`;
+        dom.authContainer.innerHTML = `<div class="flex items-center justify-center h-screen text-red-500 p-4 text-center">Không thể tải dữ liệu từ máy chủ. <br/><small class="block mt-2 font-mono text-xs opacity-70">${error.message}</small></div>`;
     }
 }
 
@@ -293,7 +297,6 @@ function displayAlert(containerId, message, type = 'error') {
             <div>${icon}</div>
             <div class="flex-grow text-sm">${message}</div>
             <button type="button" class="ml-auto -mx-1.5 -my-1.5" onclick="this.parentElement.remove()">
-                <span class="sr-only">Dismiss</span>
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
             </button>
         </div>
@@ -345,10 +348,10 @@ async function handleFileUploads(files) {
     if (filesProcessed > 0) markAsDirty();
 
     if (failedFiles.length > 0) {
-        displayAlert('gallery-alerts', `<strong>Không thể xử lý ${failedFiles.length} tệp:</strong> <br>${failedFiles.map(f => `- ${f.name}: ${f.reason}`).join('<br>')}`, 'error');
+        displayAlert('gallery-alerts', `<strong>Không thể xử lý ${failedFiles.length} tệp.</strong>`, 'error');
     }
 
-    progressText.textContent = `Hoàn tất! Đã thêm ${filesProcessed} tệp. Nhấn "Lưu và Đồng bộ" để cập nhật trang.`;
+    progressText.textContent = `Hoàn tất! Đã thêm ${filesProcessed} tệp. Nhấn "Đồng bộ ngay" để áp dụng.`;
     setTimeout(() => { progressContainer.classList.add('hidden'); }, 5000);
     renderGallerySection();
 }
@@ -451,14 +454,14 @@ async function showChangePasswordForm() {
                 <button type="submit" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">Cập nhật</button>
             </div>
         </form>`;
-    openModal({ title: 'Đổi mật khẩu truy cập', contentHTML, size: 'max-w-md' });
+    openModal({ title: 'Đổi mật khẩu bảo mật', contentHTML, size: 'max-w-md' });
 }
 
 async function handleChangePassword(form) {
     const currentPassword = form.currentPassword.value;
     const newPassword = form.newPassword.value;
     const errorEl = document.getElementById('password-error');
-    errorEl.textContent = 'Đang xử lý...';
+    errorEl.textContent = 'Đang kiểm tra...';
     const result = await updatePassword({ currentPassword, newPassword, authToken: sessionAuthToken });
     if (result.success) {
         sessionAuthToken = result.newToken;
@@ -475,7 +478,6 @@ function addClassListRow(data = {}) {
     appData.studentColumns.forEach(col => {
         if (!(col.key in newStudent)) newStudent[col.key] = '';
     });
-    // Ensure STT is correctly filled
     newStudent.stt = (appData.students.length + 1).toString();
     appData.students.push(newStudent);
     markAsDirty();
@@ -484,7 +486,6 @@ function addClassListRow(data = {}) {
 
 function removeClassListRow(index) {
     appData.students.splice(index, 1);
-    // Re-index STT
     appData.students.forEach((s, idx) => s.stt = (idx + 1).toString());
     markAsDirty();
     renderClassListSection();
@@ -504,10 +505,10 @@ function addClassListColumn() {
 function removeClassListColumn(index) {
     const col = appData.studentColumns[index];
     if (col.key === 'stt' || col.key === 'name') {
-        alert('Không thể xóa cột mặc định.');
+        alert('Không thể xóa cột cốt lõi.');
         return;
     }
-    if (confirm(`Xóa cột "${col.label}"?`)) {
+    if (confirm(`Bạn có chắc muốn xóa cột "${col.label}"?`)) {
         appData.studentColumns.splice(index, 1);
         appData.students.forEach(s => delete s[col.key]);
         markAsDirty();
@@ -519,7 +520,7 @@ function removeClassListColumn(index) {
 
 function handleClassListPaste(e) {
     const text = e.clipboardData.getData('text');
-    if (!text.includes('\n')) return; // Only process multi-line pastes
+    if (!text || !text.includes('\n')) return;
 
     e.preventDefault();
     const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
@@ -533,7 +534,6 @@ function handleClassListPaste(e) {
         if (targetIdx < appData.students.length) {
             appData.students[targetIdx][columnKey] = line;
         } else {
-            // Create new row for extra lines
             const newRow = {};
             newRow[columnKey] = line;
             addClassListRow(newRow);
@@ -546,46 +546,59 @@ function handleClassListPaste(e) {
 
 // --- DRAG AND DROP HANDLERS --- //
 
+function handleMouseDown(e) {
+    const handle = e.target.closest('.stt-handle');
+    const row = e.target.closest('tr[draggable]');
+    if (row) {
+        // Chỉ cho phép kéo nếu nhấn vào icon 3 gạch
+        row.setAttribute('draggable', !!handle ? 'true' : 'false');
+    }
+}
+
 function handleDragStart(e) {
     const row = e.target.closest('tr');
-    if (!row) return;
+    if (!row || row.getAttribute('draggable') === 'false') {
+        e.preventDefault();
+        return;
+    }
+    draggedRowElement = row;
     draggedRowIndex = parseInt(row.dataset.index);
     e.dataTransfer.effectAllowed = 'move';
-    row.classList.add('opacity-50', 'bg-indigo-100', 'dark:bg-indigo-900/50');
+    row.classList.add('dragging');
 }
 
 function handleDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     const row = e.target.closest('tr');
-    if (row && parseInt(row.dataset.index) !== draggedRowIndex) {
-        row.classList.add('bg-indigo-50', 'dark:bg-indigo-900/20');
-    }
-}
+    if (!row || row === draggedRowElement || !row.parentNode) return;
 
-function handleDragLeave(e) {
-    const row = e.target.closest('tr');
-    if (row) {
-        row.classList.remove('bg-indigo-50', 'dark:bg-indigo-900/20');
-    }
+    const rect = row.getBoundingClientRect();
+    const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5;
+    
+    // Tạo hiệu ứng "chạy" bằng cách chèn trực tiếp vào DOM (phần này tạo khoảng trống)
+    const container = row.parentNode;
+    container.insertBefore(draggedRowElement, next ? row.nextSibling : row);
 }
 
 function handleDrop(e) {
     e.preventDefault();
-    const targetRow = e.target.closest('tr');
-    if (!targetRow || draggedRowIndex === null) return;
+    if (!draggedRowElement) return;
 
-    const targetIndex = parseInt(targetRow.dataset.index);
-    if (targetIndex === draggedRowIndex) return;
+    const rows = Array.from(document.querySelectorAll('#classlist-table-body tr'));
+    const newOrderIndices = rows.map(r => parseInt(r.dataset.index));
+    
+    // Cập nhật lại appData dựa trên thứ tự DOM mới
+    const newStudents = newOrderIndices.map(idx => appData.students[idx]);
+    appData.students = newStudents;
 
-    // Move item in array
-    const [movedItem] = appData.students.splice(draggedRowIndex, 1);
-    appData.students.splice(targetIndex, 0, movedItem);
-
-    // Re-index STT
+    // Đánh số lại STT
     appData.students.forEach((s, idx) => s.stt = (idx + 1).toString());
 
+    draggedRowElement.classList.remove('dragging');
+    draggedRowElement = null;
     draggedRowIndex = null;
+    
     markAsDirty();
     renderClassListSection();
 }
@@ -629,20 +642,20 @@ function setupEventListeners() {
         }
     });
 
-    // Special Paste Event
     dom.editContainer.addEventListener('paste', e => {
         if (e.target.dataset.action === 'update-cell') handleClassListPaste(e);
     });
 
-    // Drag & Drop Events
+    dom.editContainer.addEventListener('mousedown', handleMouseDown);
     dom.editContainer.addEventListener('dragstart', handleDragStart);
     dom.editContainer.addEventListener('dragover', handleDragOver);
-    dom.editContainer.addEventListener('dragleave', handleDragLeave);
     dom.editContainer.addEventListener('drop', handleDrop);
     dom.editContainer.addEventListener('dragend', e => {
-        const row = e.target.closest('tr');
-        if (row) row.classList.remove('opacity-50', 'bg-indigo-100', 'dark:bg-indigo-900/50');
-        document.querySelectorAll('tr').forEach(r => r.classList.remove('bg-indigo-50', 'dark:bg-indigo-900/20'));
+        if (draggedRowElement) {
+            draggedRowElement.classList.remove('dragging');
+            draggedRowElement = null;
+            renderClassListSection(); // Reset lại UI nếu drag bị hủy
+        }
     });
 
     dom.editContainer.addEventListener('click', e => {

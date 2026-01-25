@@ -6,12 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chỉnh sửa - Thông tin Lớp 8/4 (v4.0)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Handsontable -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
 
     <style>
-      /* Custom scrollbar for better aesthetics */
+      /* Custom scrollbar */
       ::-webkit-scrollbar { width: 8px; }
       ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px;}
       ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
@@ -19,28 +16,16 @@
       
       #auth-container, #edit-container { min-height: 100vh; }
       
-      /* Handsontable dark theme adjustments */
-      .htDark .handsontable { background-color: #1f2937; color: #f3f4f6; }
-      .htDark .handsontable .htCore { border-color: #4b5563; }
-      .htDark .handsontable th, .htDark .handsontable td { border-color: #4b5563; }
-      .htDark .handsontable th { background-color: #374151; color: #f3f4f6; }
-      .htDark .handsontable .htDimmed { color: #d1d5db; }
-      .htDark .handsontable .htPlaceholder { color: #9ca3af; }
-      .htDark .handsontable .htActiveStyle { background-color: #374151; }
-      .htDark .handsontable .htSelection { background-color: rgba(79, 70, 229, 0.2); }
-      .htDark .handsontable .ht__manualColumnMove.active, .htDark .handsontable .ht__manualRowMove.active { background-color: #4f46e5; }
-      
-      /* Modern Accordion Styles using Grid trick for auto-height animation */
+      /* Modern Accordion Styles */
       .accordion-content {
         display: grid;
         grid-template-rows: 0fr;
-        transition: grid-template-rows 0.3s ease-in-out;
+        transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         overflow: hidden;
       }
       .accordion-content.open {
         grid-template-rows: 1fr;
       }
-      /* Inner wrapper needs min-height: 0 to allow the grid transition */
       .accordion-content > div {
         min-height: 0;
         visibility: hidden;
@@ -57,13 +42,32 @@
         transform: rotate(180deg);
       }
       
-      #upload-progress-container {
-        transition: opacity 0.3s ease;
+      /* Smooth transitions for inputs */
+      input, textarea {
+        transition: all 0.2s ease;
       }
-
-      /* Fix for gallery scrolling */
-      #edit-main {
-        overflow-y: visible;
+      
+      /* Row dragging animations */
+      #classlist-table-body tr {
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
+      }
+      
+      tr.dragging {
+        opacity: 0.4;
+        background-color: #e0e7ff !important; /* indigo-100 */
+        transform: scale(0.98);
+      }
+      
+      /* Remove extra space when hidden */
+      .hidden {
+        display: none !important;
+      }
+      
+      .stt-handle {
+        cursor: grab;
+      }
+      .stt-handle:active {
+        cursor: grabbing;
       }
     </style>
 </head>
