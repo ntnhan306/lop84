@@ -73,7 +73,19 @@ export function renderGallery(media, { isEditing = false, isSelectionMode = fals
                     }
                     break;
                 default: // image
-                    mediaElement = `<img src="${item.url}" alt="${item.caption || 'Gallery image'}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 ${!isEditing ? 'cursor-pointer' : ''}" />`;
+                    // Placeholder logic: Show data/no_image.png with img-pulse until real image loads
+                    mediaElement = `
+                        <div class="relative w-full h-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
+                            <img src="../data/no_image.png" class="absolute w-1/2 h-1/2 object-contain img-pulse opacity-40" alt="Loading...">
+                            <img 
+                                src="${item.url}" 
+                                alt="${item.caption || 'Loading...'}" 
+                                onload="this.previousElementSibling.style.display='none'; this.style.opacity='1'"
+                                onerror="this.src='../data/no_image.png'; this.style.opacity='0.5'; this.previousElementSibling.style.display='none'"
+                                class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 opacity-0 ${!isEditing ? 'cursor-pointer' : ''}" 
+                            />
+                        </div>
+                    `;
                     if (!isEditing) containerAttributes = `data-lightbox-item="true" data-src="${item.url}"`;
                     break;
             }

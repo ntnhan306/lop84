@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -39,6 +40,15 @@
       }
       .nav-tab.active::after {
         transform: scaleX(1);
+      }
+
+      @keyframes scalePulse {
+        0%{transform:scale(1)}
+        50%{transform:scale(1.36)}
+        100%{transform:scale(1)}
+      }
+      .img-pulse {
+        animation: scalePulse 4.4s ease-out infinite;
       }
     </style>
 </head>
