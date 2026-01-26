@@ -5,9 +5,9 @@ import { renderGallery, renderClassList, renderSchedule, icons, openLightbox, se
 // --- State Management ---
 let appData = null;
 let currentView = 'gallery'; // Default view
-let pollInterval = 2000; // Start with the active interval
-const ACTIVE_POLLING_INTERVAL = 2000; // 2 seconds for near real-time updates
-const INACTIVE_POLLING_INTERVAL = 10000; // 10 seconds when tab is in background
+let pollInterval = 2000; 
+const ACTIVE_POLLING_INTERVAL = 2000; 
+const INACTIVE_POLLING_INTERVAL = 10000; 
 let isFirstLoad = true;
 let lastConnectionStatus = '';
 let lastDataString = '';
@@ -60,10 +60,10 @@ function renderActiveView() {
             contentHTML = renderGallery(appData.media, { isEditing: false });
             break;
         case 'classlist':
-            contentHTML = renderClassList(appData.students, appData.studentColumns, { isEditing: false });
+            contentHTML = renderClassList(appData.students, appData.headers, { isEditing: false });
             break;
         case 'schedule':
-            contentHTML = renderSchedule(appData.schedule, false);
+            contentHTML = renderSchedule(appData.schedule, { isEditing: false });
             break;
     }
     viewContent.innerHTML = contentHTML;
@@ -110,7 +110,7 @@ async function fetchData() {
             viewContent.innerHTML = `
                 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center">
                     <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400">
-                        ${icons.error.replace('w-5 h-5', 'w-8 h-8')}
+                        ${icons.error.replace('h-5 w-5', 'h-8 w-8')}
                     </div>
                     <h2 class="mt-6 text-2xl font-semibold text-gray-700 dark:text-gray-300">Không thể tải dữ liệu</h2>
                     <p class="mt-2 text-gray-500 dark:text-gray-400">Đã xảy ra lỗi khi kết nối đến máy chủ. Trang sẽ tự động thử lại.</p>
@@ -127,27 +127,31 @@ async function fetchData() {
 function handleVisibilityChange() {
     if (document.hidden) {
         pollInterval = INACTIVE_POLLING_INTERVAL;
-        if (pollTimeoutId) clearTimeout(pollTimeoutId); // Stop polling when hidden
-        pollTimeoutId = setTimeout(fetchData, pollInterval); // Schedule next poll
+        if (pollTimeoutId) clearTimeout(pollTimeoutId); 
+        pollTimeoutId = setTimeout(fetchData, pollInterval); 
     } else {
         pollInterval = ACTIVE_POLLING_INTERVAL;
-        // Fetch immediately when tab becomes visible again for quicker update
         fetchData();
     }
 }
 
 async function init() {
-    // Load placeholder image
     const noImg = await fetchNoImage();
     setNoImageBase64(noImg);
 
     // Inject icons
-    document.querySelector('[data-view="gallery"]').prepend(new DOMParser().parseFromString(icons.gallery, 'image/svg+xml').documentElement);
-    document.querySelector('[data-view="classlist"]').prepend(new DOMParser().parseFromString(icons.users, 'image/svg+xml').documentElement);
-    document.querySelector('[data-view="schedule"]').prepend(new DOMParser().parseFromString(icons.calendar, 'image/svg+xml').documentElement);
-    document.getElementById('edit-link').prepend(new DOMParser().parseFromString(icons.edit, 'image/svg+xml').documentElement);
+    const galleryTab = document.querySelector('[data-view="gallery"]');
+    if (galleryTab) galleryTab.insertAdjacentHTML('afterbegin', icons.gallery + ' ');
     
-    // Initial placeholder
+    const usersTab = document.querySelector('[data-view="classlist"]');
+    if (usersTab) usersTab.insertAdjacentHTML('afterbegin', icons.users + ' ');
+    
+    const calTab = document.querySelector('[data-view="schedule"]');
+    if (calTab) calTab.insertAdjacentHTML('afterbegin', icons.calendar + ' ');
+
+    const editLink = document.getElementById('edit-link');
+    if (editLink) editLink.insertAdjacentHTML('afterbegin', icons.edit + ' ');
+    
     updateConnectionStatus('loading');
     viewContent.innerHTML = `
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center">
@@ -170,12 +174,8 @@ async function init() {
         }
     });
     
-    // Listen for tab visibility changes to optimize polling
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    
-    setActiveView(currentView); // Set initial active tab style
-    
-    // Start polling for data
+    setActiveView(currentView); 
     fetchData();
 }
 

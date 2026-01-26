@@ -17,7 +17,7 @@ function renderAuth() {
         <div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
             <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-sm text-center">
                 <h2 class="text-2xl font-bold mb-6 text-indigo-600">Quản trị Lớp 8/4</h2>
-                <input type="password" id="pass-input" placeholder="Mật khẩu" class="w-full p-3 border dark:border-gray-700 rounded-lg mb-4 dark:bg-gray-700 outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="password" id="pass-input" placeholder="Mật khẩu" class="w-full p-3 border dark:border-gray-700 rounded-lg mb-4 dark:bg-gray-700 outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
                 <button id="login-btn" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-bold hover:bg-indigo-700 transition-colors">Đăng nhập</button>
             </div>
         </div>
@@ -42,7 +42,7 @@ function renderEditor() {
             <header class="flex flex-wrap justify-between items-center gap-4 mb-8 border-b dark:border-gray-700 pb-4">
                 <div>
                     <h1 class="text-3xl font-bold text-indigo-600">Hệ thống Cập nhật</h1>
-                    <p class="text-sm opacity-60 uppercase font-bold tracking-widest mt-1">Lớp 8/4 - v5.0 Stable</p>
+                    <p class="text-sm opacity-60 uppercase font-bold tracking-widest mt-1">Lớp 8/4 - v4.0 Stable Upgrade</p>
                 </div>
                 <div class="flex gap-2">
                     <button id="save-btn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg hover:bg-indigo-700 flex items-center gap-2 transition-all">Lưu dữ liệu</button>
@@ -50,22 +50,22 @@ function renderEditor() {
                 </div>
             </header>
 
-            <div class="grid gap-8">
-                <section class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-600">${icons.gallery} Media</h2>
+            <div class="grid gap-12">
+                <section>
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-600">${icons.gallery} Thư viện Media</h2>
                     <div class="mb-4">
                         <input type="file" id="file-input" multiple class="hidden" accept="image/*,video/*">
-                        <button onclick="document.getElementById('file-input').click()" class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 px-4 py-2 rounded font-bold hover:bg-indigo-100 transition-colors">+ Thêm ảnh/video</button>
+                        <button onclick="document.getElementById('file-input').click()" class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition-colors">+ Thêm ảnh/video mới</button>
                     </div>
                     <div id="gallery-edit"></div>
                 </section>
 
-                <section class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
-                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-600">${icons.users} Danh sách Lớp</h2>
+                <section>
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-600">${icons.users} Danh sách Lớp Học</h2>
                     <div id="classlist-edit"></div>
                 </section>
 
-                <section class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700">
+                <section>
                     <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-600">${icons.calendar} Thời khóa biểu</h2>
                     <div id="schedule-edit"></div>
                 </section>
@@ -157,7 +157,7 @@ function attachListeners() {
         for (let r = rMin; r <= rMax; r++) {
             affectedKeys.forEach(k => {
                 if (r === rMin && k === rootKey) return;
-                if (!appData.students[r].cells[k]) appData.students[r].cells[k] = { value: '' };
+                if (!appData.students[r].cells[k]) appData.students[r].cells[k] = { value: '', rowSpan: 1, colSpan: 1 };
                 appData.students[r].cells[k].hidden = true;
             });
         }
@@ -191,7 +191,7 @@ function attachListeners() {
         renderSections();
     };
 
-    // Row Logic
+    // Add Student Logic
     const addBtn = document.querySelector('[data-action="add-student"]');
     if (addBtn) addBtn.onclick = () => {
         const leafKeys = appData.headers[appData.headers.length - 1].map(h => h.key);
@@ -201,7 +201,7 @@ function attachListeners() {
         renderSections();
     };
 
-    // Inputs
+    // Inputs updates
     document.querySelectorAll('[data-action="edit-cell"]').forEach(input => {
         input.onchange = () => {
             appData.students[input.dataset.r].cells[input.dataset.key].value = input.value;
