@@ -47,7 +47,7 @@ function renderEditToggle(sectionId, isActive) {
             <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-teal-300 dark:peer-focus:ring-teal-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-teal-600"></div>
             <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Chế độ Chỉnh sửa</span>
         </label>
-        ${isActive ? '<span class="text-xs text-teal-600 dark:text-teal-400 font-medium italic animate-pulse">Sửa trực tiếp bên dưới (Nhấn Ctrl + Click để gộp ô, Chuột phải tiêu đề để phân tầng)</span>' : ''}
+        ${isActive ? '<span class="text-xs text-teal-600 dark:text-teal-400 font-medium italic animate-pulse">Sửa trực tiếp bên dưới</span>' : ''}
     </div>
   `;
 }
@@ -177,74 +177,17 @@ export function openLightbox(src) {
     container.addEventListener('click', (e) => { if (e.target === container) close(); });
 }
 
-export function renderMediaEditModal(mediaItem) {
-    return `
-    <div id="media-edit-modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all animate-scale-up">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Chỉnh sửa Media</h3>
-                    <button data-action="close-modal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-                
-                <div class="mb-6 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 aspect-video flex items-center justify-center relative">
-                    ${mediaItem.type === 'image' ? `<img src="${mediaItem.url}" class="max-h-full object-contain">` : ''}
-                    ${mediaItem.type === 'video' ? `<video src="${mediaItem.url}" class="max-h-full"></video>` : ''}
-                    ${mediaItem.type === 'audio' ? `<div class="p-4 text-indigo-500">${icons.audio.replace('h-6 w-6', 'h-16 w-16')}</div>` : ''}
-                </div>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Chú thích (Caption)</label>
-                        <input type="text" id="edit-media-caption-input" value="${mediaItem.caption || ''}" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="Nhập chú thích mới...">
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-gray-50 dark:bg-gray-700/50 p-4 flex justify-end gap-3">
-                <button data-action="close-modal" class="px-5 py-2 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">Hủy</button>
-                <button data-action="save-media-edit-confirm" data-id="${mediaItem.id}" class="px-5 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none transition-all">Cập nhật</button>
-            </div>
-        </div>
-    </div>
-    `;
-}
-
-function renderClassListTable(students, columns, { directEditMode = false, merges = [] } = {}) {
-    if (students.length === 0 && !directEditMode) {
+function renderClassListTable(students, columns, { directEditMode = false } = {}) {
+     if (students.length === 0 && !directEditMode) {
         return renderEmptyState(icons.users, "Danh sách lớp trống", "Hiện chưa có thông tin học sinh nào được thêm vào.");
     }
 
-    const hasParents = columns.some(col => col.parent);
-    let topHeaderHtml = '';
-    let bottomHeaderHtml = '';
-
-    if (hasParents) {
-        const groups = [];
-        columns.forEach(col => {
-            const parentLabel = col.parent || '';
-            const lastGroup = groups[groups.length - 1];
-            if (lastGroup && lastGroup.label === parentLabel) {
-                lastGroup.span++;
-            } else {
-                groups.push({ label: parentLabel, span: 1 });
-            }
-        });
-
-        topHeaderHtml = `<tr>
-            <th class="px-2 py-3 bg-gray-200 dark:bg-gray-600 border-r dark:border-gray-500"></th>
-            ${groups.map(g => `<th colspan="${g.span}" class="px-6 py-2 border-b dark:border-gray-600 text-center bg-gray-200 dark:bg-gray-700 font-bold">${g.label}</th>`).join('')}
-            ${directEditMode ? '<th class="w-10"></th>' : ''}
-        </tr>`;
-    }
-
     const hasSttColumn = columns.some(col => col.label.toUpperCase() === 'STT');
-    bottomHeaderHtml = `<tr>
+
+    const headerHtml = `
         ${!hasSttColumn ? '<th scope="col" class="px-2 py-3 w-12 text-center bg-gray-200 dark:bg-gray-600">STT</th>' : ''}
         ${columns.map((col, idx) => `
-            <th scope="col" class="px-6 py-3 relative group header-cell" data-column-index="${idx}">
+            <th scope="col" class="px-6 py-3 relative group">
                 ${directEditMode ? `
                     <div class="flex flex-col gap-1">
                         <input type="text" value="${col.label}" data-action="update-column-label" data-column-index="${idx}" class="bg-transparent border-b border-gray-400 focus:border-indigo-500 outline-none w-full text-center">
@@ -262,79 +205,52 @@ function renderClassListTable(students, columns, { directEditMode = false, merge
                 </button>
             </th>
         ` : ''}
-    </tr>`;
+    `;
 
-    const skipMap = new Set();
-    const bodyHtml = students.map((student, rowIndex) => {
-        let cellsHtml = '';
-        if (!hasSttColumn) {
-            cellsHtml += `<td class="px-2 py-4 text-center font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30 w-12 relative overflow-hidden">
-                ${directEditMode ? `
-                    <div class="stt-container w-full h-full flex items-center justify-center cursor-move group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/20">
-                        <span class="stt-number block group-hover:hidden">${rowIndex + 1}</span>
-                        <span class="stt-handle hidden group-hover:block text-indigo-500">${icons.dragHandle}</span>
-                    </div>
-                ` : (rowIndex + 1)}
-            </td>`;
-        }
-
-        columns.forEach((col, colIndex) => {
-            const cellKey = `cell-${rowIndex}-${colIndex}`;
-            if (skipMap.has(cellKey)) return;
-
-            const merge = merges.find(m => m.sR === rowIndex && m.sC === colIndex);
-            let rowSpan = 1;
-            let colSpan = 1;
-
-            if (merge) {
-                rowSpan = merge.eR - merge.sR + 1;
-                colSpan = merge.eC - merge.sC + 1;
-                for (let r = merge.sR; r <= merge.eR; r++) {
-                    for (let c = merge.sC; c <= merge.eC; c++) {
-                        if (r === rowIndex && c === colIndex) continue;
-                        skipMap.add(`cell-${r}-${c}`);
-                    }
-                }
-            }
-
-            cellsHtml += `
-                <td class="px-6 py-4 border dark:border-gray-700 table-cell-interactive" 
-                    data-row="${rowIndex}" data-col="${colIndex}" 
-                    rowspan="${rowSpan}" colspan="${colSpan}">
+    const bodyHtml = students.map((student, index) => {
+        const rowId = student.id;
+        return `
+        <tr 
+            data-id="${rowId}" 
+            data-index="${index}" 
+            class="bg-white dark:bg-gray-800 even:bg-gray-50 dark:even:bg-gray-800/50 border-b dark:border-gray-700 group transition-colors duration-200" 
+            ${directEditMode ? 'draggable="true" data-action="drag-row"' : ''}
+        >
+            ${!hasSttColumn ? `
+                <td class="px-2 py-4 text-center font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30 w-12 relative overflow-hidden">
                     ${directEditMode ? `
-                        <input type="text" value="${student[col.key] || ''}" 
-                            data-action="update-cell" data-row-index="${rowIndex}" data-column-key="${col.key}" 
-                            class="w-full bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded px-1 transition-all">
+                        <div class="stt-container w-full h-full flex items-center justify-center cursor-move group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/20">
+                            <span class="stt-number block group-hover:hidden">${index + 1}</span>
+                            <span class="stt-handle hidden group-hover:block text-indigo-500">${icons.dragHandle}</span>
+                        </div>
+                    ` : (index + 1)}
+                </td>` : ''}
+            ${columns.map(col => `
+                <td class="px-6 py-4">
+                    ${directEditMode ? `
+                        <input type="text" value="${student[col.key] || ''}" data-action="update-cell" data-row-index="${index}" data-column-key="${col.key}" class="w-full bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded px-1 transition-all">
                     ` : `
                         <div class="${col.label.toUpperCase() === 'HỌ VÀ TÊN' || col.key === 'name' ? 'font-semibold text-gray-900 dark:text-white' : ''}">
                             ${student[col.key] || ''}
                         </div>
                     `}
                 </td>
-            `;
-        });
-
-        return `
-        <tr data-id="${student.id}" data-index="${rowIndex}" 
-            class="bg-white dark:bg-gray-800 even:bg-gray-50 dark:even:bg-gray-800/50 border-b dark:border-gray-700 group transition-colors duration-200" 
-            ${directEditMode ? 'draggable="true" data-action="drag-row"' : ''}>
-            ${cellsHtml}
+            `).join('')}
             ${directEditMode ? `
                 <td class="px-2 py-4 text-center">
-                    <button data-action="remove-row" data-row-index="${rowIndex}" class="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 opacity-0 group-hover:opacity-100 transition-opacity">
-                        ${icons.trash}
+                    <button data-action="remove-row" data-row-index="${index}" class="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 opacity-0 group-hover:opacity-100 transition-opacity">
+                        ${icons.trash.replace('h-4 w-4', 'h-4 w-4')}
                     </button>
                 </td>
             ` : ''}
-        </tr>`;
-    }).join('');
-
+        </tr>
+    `}).join('');
+    
     return `
         <div id="classlist-table-container" class="overflow-x-auto relative shadow-md sm:rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
-            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400 border-collapse">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
-                    ${topHeaderHtml}
-                    ${bottomHeaderHtml}
+                    <tr>${headerHtml}</tr>
                 </thead>
                 <tbody id="classlist-table-body">${bodyHtml}</tbody>
             </table>
@@ -348,14 +264,20 @@ function renderClassListTable(students, columns, { directEditMode = false, merge
         </div>`;
 }
 
-export function renderClassList(students, columns, { isEditing = false, directEditMode = false, merges = [] } = {}) {
+
+export function renderClassList(students, columns, { isEditing = false, directEditMode = false } = {}) {
     let content = '';
+    
     if (isEditing) {
-        content = renderEditToggle('classlist', directEditMode) + renderClassListTable(students, columns, { directEditMode, merges });
+        content = renderEditToggle('classlist', directEditMode) + renderClassListTable(students, columns, { directEditMode });
     } else {
-        content = renderClassListTable(students, columns, { merges });
+        content = renderClassListTable(students, columns);
     }
-    if (isEditing) return content;
+
+    if (isEditing) {
+        return content;
+    }
+
     return `
      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
         <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Danh sách Lớp</h2>
@@ -408,14 +330,20 @@ function renderScheduleTable(schedule, { directEditMode = false } = {}) {
     return tableHtml;
 }
 
+
 export function renderSchedule(schedule, { isEditing = false, directEditMode = false } = {}) {
     let content = '';
+    
     if (isEditing) {
         content = renderEditToggle('schedule', directEditMode) + renderScheduleTable(schedule, { directEditMode });
     } else {
         content = renderScheduleTable(schedule);
     }
-    if (isEditing) return content;
+    
+    if (isEditing) {
+        return content;
+    }
+    
     return `
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-6">Thời khóa biểu</h2>
