@@ -12,74 +12,132 @@ async function init() {
 }
 
 function renderAuth() {
-    document.getElementById('auth-container').innerHTML = `
-        <div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
-            <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-sm text-center">
-                <h2 class="text-2xl font-bold mb-6 text-indigo-600">Quản trị Lớp 8/4</h2>
-                <input type="password" id="pass-input" placeholder="Mật khẩu" class="w-full p-3 border dark:border-gray-700 rounded-lg mb-4 dark:bg-gray-700 outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
-                <button id="login-btn" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-bold hover:bg-indigo-700 transition-colors">Đăng nhập</button>
+    const authContainer = document.getElementById('auth-container');
+    authContainer.innerHTML = `
+        <div class="min-h-screen flex items-center justify-center bg-indigo-600 px-4">
+            <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm text-center transform transition-all scale-100">
+                <div class="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6 text-indigo-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                </div>
+                <h2 class="text-2xl font-bold mb-2 text-gray-800">Quản trị Lớp 8/4</h2>
+                <p class="text-gray-500 text-sm mb-6">Vui lòng nhập mật khẩu để tiếp tục</p>
+                <input type="password" id="pass-input" placeholder="Mật khẩu" class="w-full p-4 border-2 border-gray-100 rounded-xl mb-4 outline-none focus:border-indigo-500 transition-all text-center text-lg tracking-widest">
+                <button id="login-btn" class="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg active:scale-95 transition-all">ĐĂNG NHẬP</button>
             </div>
         </div>
     `;
-    document.getElementById('login-btn').onclick = async () => {
-        const pass = document.getElementById('pass-input').value;
+    const input = document.getElementById('pass-input');
+    const btn = document.getElementById('login-btn');
+
+    btn.onclick = async () => {
+        const pass = input.value;
         const res = await authenticate(pass);
         if (res.success) {
             authToken = res.token;
             appData = await fetchAppData();
-            document.getElementById('auth-container').classList.add('hidden');
+            authContainer.classList.add('hidden');
             document.getElementById('edit-container').classList.remove('hidden');
             renderEditor();
-        } else { alert("Sai mật khẩu!"); }
+        } else {
+            input.classList.add('border-red-500', 'shake');
+            setTimeout(() => input.classList.remove('shake'), 500);
+            alert("Mật khẩu không chính xác!");
+        }
     };
 }
 
 function renderEditor() {
     const container = document.getElementById('edit-container');
     container.innerHTML = `
-        <div class="max-w-7xl mx-auto p-4 sm:p-6">
-            <header class="flex flex-wrap justify-between items-center gap-4 mb-8 border-b dark:border-gray-700 pb-4">
+        <div class="max-w-5xl mx-auto p-4 sm:p-8">
+            <header class="flex flex-col sm:flex-row justify-between items-center gap-6 mb-10">
                 <div>
-                    <h1 class="text-3xl font-bold text-indigo-600">Hệ thống Cập nhật</h1>
-                    <p class="text-sm opacity-60 uppercase font-bold tracking-widest mt-1">Lớp 8/4 - v4.0 Stable Classic</p>
+                    <h1 class="text-4xl font-black text-indigo-600 tracking-tight">CẬP NHẬT DỮ LIỆU</h1>
+                    <p class="text-gray-400 font-bold uppercase tracking-widest text-xs mt-1">Phiên bản 4.0 Indigo Classic</p>
                 </div>
-                <div class="flex gap-2">
-                    <button id="save-btn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg hover:bg-indigo-700 flex items-center gap-2 transition-all">Lưu dữ liệu</button>
-                    <a href="../view/" class="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-6 py-2 rounded-lg font-bold hover:bg-gray-300 transition-all">Xem trang</a>
+                <div class="flex gap-3">
+                    <button id="save-btn" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-xl hover:bg-indigo-700 active:scale-95 transition-all flex items-center gap-2">LƯU THAY ĐỔI</button>
+                    <a href="../view/" class="bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border dark:border-gray-700 px-6 py-3 rounded-xl font-bold hover:bg-gray-50 transition-all">XEM TRANG</a>
                 </div>
             </header>
 
-            <div class="grid gap-12">
-                <section>
-                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-600">${icons.gallery} Thư viện Media</h2>
-                    <div class="mb-4">
-                        <input type="file" id="file-input" multiple class="hidden" accept="image/*,video/*">
-                        <button onclick="document.getElementById('file-input').click()" class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition-colors">+ Thêm ảnh/video mới</button>
+            <div class="space-y-4" id="accordion-editor">
+                <!-- Section 1: Media -->
+                <div class="accordion-item bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
+                    <button class="accordion-header w-full flex items-center justify-between p-6 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-section="media">
+                        <div class="flex items-center gap-4">
+                            <div class="p-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 rounded-xl">${icons.gallery}</div>
+                            <span class="text-xl font-bold">Thư viện Ảnh & Video</span>
+                        </div>
+                        ${icons.chevron}
+                    </button>
+                    <div class="accordion-content p-6 border-t dark:border-gray-700 hidden" id="section-media">
+                        <div class="mb-6">
+                            <input type="file" id="file-input" multiple class="hidden" accept="image/*,video/*">
+                            <button onclick="document.getElementById('file-input').click()" class="px-6 py-2 border-2 border-dashed border-indigo-200 text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 transition-all w-full">+ Tải media lên</button>
+                        </div>
+                        <div id="media-list"></div>
                     </div>
-                    <div id="gallery-edit"></div>
-                </section>
+                </div>
 
-                <section>
-                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-600">${icons.users} Danh sách Lớp Học</h2>
-                    <div id="classlist-edit"></div>
-                </section>
+                <!-- Section 2: Students -->
+                <div class="accordion-item bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
+                    <button class="accordion-header w-full flex items-center justify-between p-6 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-section="classlist">
+                        <div class="flex items-center gap-4">
+                            <div class="p-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 rounded-xl">${icons.users}</div>
+                            <span class="text-xl font-bold">Danh sách Lớp</span>
+                        </div>
+                        ${icons.chevron}
+                    </button>
+                    <div class="accordion-content p-6 border-t dark:border-gray-700 hidden" id="section-classlist">
+                        <div id="classlist-table"></div>
+                    </div>
+                </div>
 
-                <section>
-                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-600">${icons.calendar} Thời khóa biểu</h2>
-                    <div id="schedule-edit"></div>
-                </section>
+                <!-- Section 3: Schedule -->
+                <div class="accordion-item bg-white dark:bg-gray-800 rounded-2xl border dark:border-gray-700 shadow-sm overflow-hidden">
+                    <button class="accordion-header w-full flex items-center justify-between p-6 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-section="schedule">
+                        <div class="flex items-center gap-4">
+                            <div class="p-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 rounded-xl">${icons.calendar}</div>
+                            <span class="text-xl font-bold">Thời khóa biểu</span>
+                        </div>
+                        ${icons.chevron}
+                    </button>
+                    <div class="accordion-content p-6 border-t dark:border-gray-700 hidden" id="section-schedule">
+                        <div id="schedule-table"></div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
 
+    // Accordion Logic
+    document.querySelectorAll('.accordion-header').forEach(header => {
+        header.onclick = () => {
+            const content = document.getElementById(`section-${header.dataset.section}`);
+            const isOpen = !content.classList.contains('hidden');
+            
+            // Close others
+            document.querySelectorAll('.accordion-content').forEach(c => c.classList.add('hidden'));
+            document.querySelectorAll('.accordion-header').forEach(h => h.classList.remove('open'));
+            
+            if (!isOpen) {
+                content.classList.remove('hidden');
+                header.classList.add('open');
+            }
+        };
+    });
+
+    // Save Button
     document.getElementById('save-btn').onclick = async () => {
         const btn = document.getElementById('save-btn');
-        btn.disabled = true; btn.innerText = "Đang lưu...";
+        btn.disabled = true; btn.innerText = "ĐANG LƯU...";
         const res = await saveAppData(appData, authToken);
         alert(res.message);
-        btn.disabled = false; btn.innerText = "Lưu dữ liệu";
+        btn.disabled = false; btn.innerText = "LƯU THAY ĐỔI";
     };
 
+    // File Upload
     document.getElementById('file-input').onchange = (e) => {
         const files = e.target.files;
         for (let file of files) {
@@ -88,8 +146,7 @@ function renderEditor() {
                 appData.media.push({
                     id: Date.now() + Math.random(),
                     type: file.type.startsWith('video') ? 'video' : 'image',
-                    url: ev.target.result,
-                    caption: file.name
+                    url: ev.target.result
                 });
                 renderSections();
             };
@@ -101,14 +158,14 @@ function renderEditor() {
 }
 
 function renderSections() {
-    document.getElementById('gallery-edit').innerHTML = renderGallery(appData.media, { isEditing: true });
-    document.getElementById('classlist-edit').innerHTML = renderClassList(appData.students, appData.headers, { isEditing: true });
-    document.getElementById('schedule-edit').innerHTML = renderSchedule(appData.schedule, { isEditing: true });
+    document.getElementById('media-list').innerHTML = renderGallery(appData.media, { isEditing: true });
+    document.getElementById('classlist-table').innerHTML = renderClassList(appData.students, appData.headers, { isEditing: true });
+    document.getElementById('schedule-table').innerHTML = renderSchedule(appData.schedule, { isEditing: true });
     attachListeners();
 }
 
 function attachListeners() {
-    // Media delete
+    // Delete Media
     document.querySelectorAll('[data-action="delete-media"]').forEach(btn => {
         btn.onclick = () => {
             appData.media = appData.media.filter(m => String(m.id) !== String(btn.dataset.id));
@@ -116,7 +173,7 @@ function attachListeners() {
         };
     });
 
-    // ClassList: Add row
+    // Add Student
     const addBtn = document.querySelector('[data-action="add-student"]');
     if (addBtn) addBtn.onclick = () => {
         const newStudent = { id: Date.now() };
@@ -125,31 +182,29 @@ function attachListeners() {
         renderSections();
     };
 
-    // ClassList: Delete row
+    // Delete Student
     document.querySelectorAll('[data-action="delete-student"]').forEach(btn => {
         btn.onclick = () => {
-            if (confirm("Xóa học sinh này?")) {
+            if (confirm("Xóa dòng này?")) {
                 appData.students = appData.students.filter(s => String(s.id) !== String(btn.dataset.id));
                 renderSections();
             }
         };
     });
 
-    // ClassList: Edit cell
+    // Edit Cell
     document.querySelectorAll('input[data-field]').forEach(input => {
         input.oninput = () => {
-            const student = appData.students.find(s => String(s.id) === String(input.dataset.studentId));
+            const student = appData.students.find(s => String(s.id) === String(input.dataset.id));
             if (student) student[input.dataset.field] = input.value;
         };
     });
 
-    // Schedule: Edit cell
-    document.querySelectorAll('.schedule-input').forEach(area => {
+    // Edit Schedule
+    document.querySelectorAll('textarea[data-day]').forEach(area => {
         area.oninput = () => {
             const { day, session, index } = area.dataset;
-            if (appData.schedule[day] && appData.schedule[day][session]) {
-                appData.schedule[day][session][index].subject = area.value;
-            }
+            appData.schedule[day][session][index].subject = area.value;
         };
     });
 }
