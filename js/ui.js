@@ -21,6 +21,12 @@ export const icons = {
     spreadsheet: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 1.5v3m6-3v3m-6 5.25v3.75m6-3.75v3.75M3 13.5h18M3 5.25h18a2.25 2.25 0 012.25 2.25v12a2.25 2.25 0 01-2.25 2.25H3a2.25 2.25 0 01-2.25-2.25V7.5A2.25 2.25 0 013 5.25z" /></svg>`,
 };
 
+let noImageBase64 = '';
+
+export function setNoImageBase64(data) {
+    noImageBase64 = data;
+}
+
 function renderEmptyState(icon, title, description) {
     return `
         <div class="text-center py-16 px-6">
@@ -73,18 +79,16 @@ export function renderGallery(media, { isEditing = false, isSelectionMode = fals
                     }
                     break;
                 default: // image
-                    // Placeholder logic: Show data/no_image.png with img-pulse until real image loads
-                    // If error, the main image stays hidden and placeholder remains visible with pulse (as requested)
                     mediaElement = `
                         <div class="relative w-full h-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
-                            <img src="../data/no_image.png" class="absolute w-1/2 h-1/2 object-contain img-pulse opacity-40 transition-opacity duration-300" alt="Loading...">
+                            <img src="${noImageBase64}" class="absolute w-full h-full object-cover img-pulse" alt="Loading...">
                             <img 
                                 src="${item.url}" 
                                 alt="${item.caption || 'Gallery Image'}" 
-                                onload="this.previousElementSibling.style.display='none'; this.style.opacity='1'"
-                                onerror="this.style.display='none'; this.previousElementSibling.classList.remove('opacity-40'); this.previousElementSibling.classList.add('opacity-80')"
-                                class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 opacity-0 ${!isEditing ? 'cursor-pointer' : ''}" 
-                            />
+                                class="absolute w-full h-full object-cover opacity-0 transition-opacity duration-300 ${!isEditing ? 'cursor-pointer' : ''}"
+                                onload="this.classList.remove('opacity-0'); this.previousElementSibling.style.display='none';"
+                                onerror="this.previousElementSibling.classList.remove('img-pulse');"
+                            >
                         </div>
                     `;
                     if (!isEditing) containerAttributes = `data-lightbox-item="true" data-src="${item.url}"`;

@@ -1,5 +1,6 @@
-import { fetchAppData } from './data.js';
-import { renderGallery, renderClassList, renderSchedule, icons, openLightbox } from './ui.js';
+
+import { fetchAppData, fetchNoImage } from './data.js';
+import { renderGallery, renderClassList, renderSchedule, icons, openLightbox, setNoImageBase64 } from './ui.js';
 
 // --- State Management ---
 let appData = null;
@@ -136,6 +137,10 @@ function handleVisibilityChange() {
 }
 
 async function init() {
+    // Load placeholder image
+    const noImg = await fetchNoImage();
+    setNoImageBase64(noImg);
+
     // Inject icons
     document.querySelector('[data-view="gallery"]').prepend(new DOMParser().parseFromString(icons.gallery, 'image/svg+xml').documentElement);
     document.querySelector('[data-view="classlist"]').prepend(new DOMParser().parseFromString(icons.users, 'image/svg+xml').documentElement);

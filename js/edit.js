@@ -1,7 +1,7 @@
 
 // v4.8 - Optimized Paste logic to keep empty lines and handle multi-line inputs efficiently
-import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword } from './data.js';
-import { renderGallery, renderClassList, renderSchedule, icons } from './ui.js';
+import { fetchAppData, getAppDataFromStorage, saveAppDataToStorage, saveAppData, authenticate, updatePassword, fetchNoImage } from './data.js';
+import { renderGallery, renderClassList, renderSchedule, icons, setNoImageBase64 } from './ui.js';
 
 // --- Global State ---
 let appData = null;
@@ -718,6 +718,11 @@ async function init() {
     dom.authContainer = document.getElementById('auth-container');
     dom.editContainer = document.getElementById('edit-container');
     dom.modalContainer = document.getElementById('modal-container');
+    
+    // Load placeholder image string
+    const noImg = await fetchNoImage();
+    setNoImageBase64(noImg);
+
     setupEventListeners();
     renderAuthForm();
 }

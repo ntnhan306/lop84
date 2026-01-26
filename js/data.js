@@ -25,6 +25,19 @@ const getInitialData = () => {
 };
 
 /**
+ * Lấy chuỗi base64 cho ảnh placeholder
+ */
+export async function fetchNoImage() {
+    try {
+        const response = await fetch('../data/no_image.txt');
+        return await response.text();
+    } catch (e) {
+        console.error("Could not load no_image.txt", e);
+        return "";
+    }
+}
+
+/**
  * Lấy dữ liệu ứng dụng mới nhất từ Cloudflare Worker.
  * Worker sẽ tổng hợp dữ liệu từ D1 và KV.
  */
