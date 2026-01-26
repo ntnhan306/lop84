@@ -1,9 +1,9 @@
 
 const API_ENDPOINT_BASE = "https://lop84.nhanns23062012.workers.dev";
-const APP_DATA_KEY = 'lop84_app_data_local_edit_v4';
+const APP_DATA_KEY = 'lop84_app_data_v5_stable';
 
 const getInitialData = () => {
-    // Khởi tạo bảng với tiêu đề 2 tầng
+    // Cấu trúc tiêu đề 2 tầng mặc định
     const initialHeaders = [
         [
             { label: 'STT', rowSpan: 2, colSpan: 1, key: 'stt' },
@@ -17,7 +17,7 @@ const getInitialData = () => {
         ]
     ];
 
-    // Dữ liệu học sinh dạng ma trận ô để hỗ trợ gộp
+    // Dữ liệu học sinh dạng ô (cells) để hỗ trợ rowSpan/colSpan
     const initialStudents = [
         {
             id: 's1',
@@ -26,7 +26,7 @@ const getInitialData = () => {
                 name: { value: 'Nguyễn Văn A' },
                 username: { value: 'vana84' },
                 password: { value: '123456' },
-                note: { value: '' }
+                note: { value: 'Lớp trưởng' }
             }
         }
     ];
@@ -50,9 +50,10 @@ const getInitialData = () => {
 export async function fetchNoImage() {
     try {
         const response = await fetch('../data/no_image.txt');
-        return await response.text();
+        const text = await response.text();
+        return text.trim();
     } catch (e) {
-        console.error("Could not load no_image.txt", e);
+        console.error("Lỗi đọc no_image.txt:", e);
         return "";
     }
 }
@@ -62,9 +63,9 @@ export async function fetchAppData() {
         const response = await fetch(`${API_ENDPOINT_BASE}/data`, { cache: 'no-store' });
         if (!response.ok) throw new Error(`Lỗi ${response.status}`);
         const data = await response.json();
-        return data || getInitialData();
+        return data && data.headers ? data : getInitialData();
     } catch (error) {
-        console.warn("Dùng dữ liệu mẫu do lỗi kết nối");
+        console.warn("Dùng dữ liệu mẫu");
         return getInitialData();
     }
 }
@@ -98,11 +99,6 @@ export async function updatePassword(payload) {
         body: JSON.stringify(payload),
     });
     return await response.json();
-}
-
-export function getAppDataFromStorage() {
-    const item = window.localStorage.getItem(APP_DATA_KEY);
-    return item ? JSON.parse(item) : null;
 }
 
 export function saveAppDataToStorage(data) {
