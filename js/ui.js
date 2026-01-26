@@ -74,14 +74,15 @@ export function renderGallery(media, { isEditing = false, isSelectionMode = fals
                     break;
                 default: // image
                     // Placeholder logic: Show data/no_image.png with img-pulse until real image loads
+                    // If error, the main image stays hidden and placeholder remains visible with pulse (as requested)
                     mediaElement = `
                         <div class="relative w-full h-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center overflow-hidden">
-                            <img src="../data/no_image.png" class="absolute w-1/2 h-1/2 object-contain img-pulse opacity-40" alt="Loading...">
+                            <img src="../data/no_image.png" class="absolute w-1/2 h-1/2 object-contain img-pulse opacity-40 transition-opacity duration-300" alt="Loading...">
                             <img 
                                 src="${item.url}" 
-                                alt="${item.caption || 'Loading...'}" 
+                                alt="${item.caption || 'Gallery Image'}" 
                                 onload="this.previousElementSibling.style.display='none'; this.style.opacity='1'"
-                                onerror="this.src='../data/no_image.png'; this.style.opacity='0.5'; this.previousElementSibling.style.display='none'"
+                                onerror="this.style.display='none'; this.previousElementSibling.classList.remove('opacity-40'); this.previousElementSibling.classList.add('opacity-80')"
                                 class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300 opacity-0 ${!isEditing ? 'cursor-pointer' : ''}" 
                             />
                         </div>
