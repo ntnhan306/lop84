@@ -1,10 +1,9 @@
 
-import { fetchAppData, saveAppData, authenticate, fetchNoImage, saveAppDataToStorage } from './data.js';
+import { fetchAppData, saveAppData, authenticate, fetchNoImage } from './data.js';
 import { renderGallery, renderClassList, renderSchedule, icons, setNoImageBase64 } from './ui.js';
 
 let appData = null;
 let authToken = null;
-let selectedCells = []; // { r, key, c }
 
 async function init() {
     const noImg = await fetchNoImage();
@@ -42,7 +41,7 @@ function renderEditor() {
             <header class="flex flex-wrap justify-between items-center gap-4 mb-8 border-b dark:border-gray-700 pb-4">
                 <div>
                     <h1 class="text-3xl font-bold text-indigo-600">Hệ thống Cập nhật</h1>
-                    <p class="text-sm opacity-60 uppercase font-bold tracking-widest mt-1">Lớp 8/4 - v4.0 Stable Upgrade</p>
+                    <p class="text-sm opacity-60 uppercase font-bold tracking-widest mt-1">Lớp 8/4 - v4.0 Stable Classic</p>
                 </div>
                 <div class="flex gap-2">
                     <button id="save-btn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg hover:bg-indigo-700 flex items-center gap-2 transition-all">Lưu dữ liệu</button>
@@ -103,7 +102,7 @@ function renderEditor() {
 
 function renderSections() {
     document.getElementById('gallery-edit').innerHTML = renderGallery(appData.media, { isEditing: true });
-    document.getElementById('classlist-edit').innerHTML = renderClassList(appData.students, appData.headers, { isEditing: true, selectedCells });
+    document.getElementById('classlist-edit').innerHTML = renderClassList(appData.students, appData.headers, { isEditing: true });
     document.getElementById('schedule-edit').innerHTML = renderSchedule(appData.schedule, { isEditing: true });
     attachListeners();
 }
@@ -117,101 +116,40 @@ function attachListeners() {
         };
     });
 
-    // Cell Selection (Sheet style)
-    document.querySelectorAll('#classlist-body td').forEach(td => {
-        td.onclick = (e) => {
-            const r = parseInt(td.dataset.r);
-            const key = td.dataset.key;
-            const c = parseInt(td.dataset.c);
-            
-            if (e.ctrlKey || e.metaKey) {
-                const idx = selectedCells.findIndex(s => s.r === r && s.key === key);
-                if (idx > -1) selectedCells.splice(idx, 1);
-                else selectedCells.push({ r, key, c });
-            } else {
-                selectedCells = [{ r, key, c }];
-            }
-            renderSections();
-        };
-    });
-
-    // Merge Cells Logic
-    const mergeBtn = document.querySelector('[data-action="merge-cells"]');
-    if (mergeBtn) mergeBtn.onclick = () => {
-        if (selectedCells.length < 2) return;
-        const rMin = Math.min(...selectedCells.map(s => s.r));
-        const rMax = Math.max(...selectedCells.map(s => s.r));
-        const cMin = Math.min(...selectedCells.map(s => s.c));
-        const cMax = Math.max(...selectedCells.map(s => s.c));
-
-        const leafKeys = appData.headers[appData.headers.length - 1].map(h => h.key);
-        const rootKey = leafKeys[cMin];
-        const affectedKeys = leafKeys.slice(cMin, cMax + 1);
-
-        // Ô gốc nhận rowSpan/colSpan
-        const rootCell = appData.students[rMin].cells[rootKey];
-        rootCell.rowSpan = rMax - rMin + 1;
-        rootCell.colSpan = cMax - cMin + 1;
-
-        // Ẩn các ô khác trong vùng gộp
-        for (let r = rMin; r <= rMax; r++) {
-            affectedKeys.forEach(k => {
-                if (r === rMin && k === rootKey) return;
-                if (!appData.students[r].cells[k]) appData.students[r].cells[k] = { value: '', rowSpan: 1, colSpan: 1 };
-                appData.students[r].cells[k].hidden = true;
-            });
-        }
-        selectedCells = [];
-        renderSections();
-    };
-
-    // Unmerge Cells Logic
-    const unmergeBtn = document.querySelector('[data-action="unmerge-cells"]');
-    if (unmergeBtn) unmergeBtn.onclick = () => {
-        if (selectedCells.length !== 1) return;
-        const { r, key, c } = selectedCells[0];
-        const cell = appData.students[r].cells[key];
-        const rs = cell.rowSpan || 1;
-        const cs = cell.colSpan || 1;
-
-        const leafKeys = appData.headers[appData.headers.length - 1].map(h => h.key);
-        const affectedKeys = leafKeys.slice(c, c + cs);
-
-        for (let ri = r; ri < r + rs; ri++) {
-            affectedKeys.forEach(k => {
-                if (ri === r && k === key) {
-                    cell.rowSpan = 1; cell.colSpan = 1;
-                }
-                if (appData.students[ri].cells[k]) {
-                    appData.students[ri].cells[k].hidden = false;
-                }
-            });
-        }
-        selectedCells = [];
-        renderSections();
-    };
-
-    // Add Student Logic
+    // ClassList: Add row
     const addBtn = document.querySelector('[data-action="add-student"]');
     if (addBtn) addBtn.onclick = () => {
-        const leafKeys = appData.headers[appData.headers.length - 1].map(h => h.key);
-        const newCells = {};
-        leafKeys.forEach(k => newCells[k] = { value: '', rowSpan: 1, colSpan: 1 });
-        appData.students.push({ id: Date.now(), cells: newCells });
+        const newStudent = { id: Date.now() };
+        appData.headers.forEach(h => newStudent[h.key] = '');
+        appData.students.push(newStudent);
         renderSections();
     };
 
-    // Inputs updates
-    document.querySelectorAll('[data-action="edit-cell"]').forEach(input => {
-        input.onchange = () => {
-            appData.students[input.dataset.r].cells[input.dataset.key].value = input.value;
+    // ClassList: Delete row
+    document.querySelectorAll('[data-action="delete-student"]').forEach(btn => {
+        btn.onclick = () => {
+            if (confirm("Xóa học sinh này?")) {
+                appData.students = appData.students.filter(s => String(s.id) !== String(btn.dataset.id));
+                renderSections();
+            }
         };
     });
 
-    document.querySelectorAll('[data-action="edit-schedule"]').forEach(area => {
-        area.onchange = () => {
+    // ClassList: Edit cell
+    document.querySelectorAll('input[data-field]').forEach(input => {
+        input.oninput = () => {
+            const student = appData.students.find(s => String(s.id) === String(input.dataset.studentId));
+            if (student) student[input.dataset.field] = input.value;
+        };
+    });
+
+    // Schedule: Edit cell
+    document.querySelectorAll('.schedule-input').forEach(area => {
+        area.oninput = () => {
             const { day, session, index } = area.dataset;
-            appData.schedule[day][session][index].subject = area.value;
+            if (appData.schedule[day] && appData.schedule[day][session]) {
+                appData.schedule[day][session][index].subject = area.value;
+            }
         };
     });
 }

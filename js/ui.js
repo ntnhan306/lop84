@@ -6,8 +6,6 @@ export const icons = {
     gallery: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>`,
     users: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M5.5 13.5A3.5 3.5 0 019 10h.001c0 .98.39 1.85.98 2.5H9a4.5 4.5 0 01-4.5-4.5V7.5A3.5 3.5 0 019 4h6.001c0 .98.39 1.85.98 2.5H15A4.5 4.5 0 0110.5 11v2.5a3.5 3.5 0 01-5 0z" /></svg>`,
     calendar: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>`,
-    merge: `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" /></svg>`,
-    unmerge: `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>`,
     edit: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>`,
     error: `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`
 };
@@ -21,7 +19,6 @@ function renderEmptyState(icon, title, desc) {
 
 export function renderGallery(media, { isEditing = false } = {}) {
     if (!media || media.length === 0) return renderEmptyState(icons.gallery, "Thư viện trống", "Chưa có media nào.");
-    
     const items = media.map(item => {
         let mediaHtml;
         if (item.type === 'video') {
@@ -47,7 +44,6 @@ export function renderGallery(media, { isEditing = false } = {}) {
             </div>
         `;
     }).join('');
-
     return `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">${items}</div>`;
 }
 
@@ -59,50 +55,45 @@ export function openLightbox(src) {
     document.body.appendChild(div);
 }
 
-export function renderClassList(students, headers, { isEditing = false, selectedCells = [] } = {}) {
+export function renderClassList(students, headers, { isEditing = false } = {}) {
     if (!headers || headers.length === 0) return '';
-    const leafKeys = headers[headers.length - 1].map(h => h.key);
-
-    const headerHtml = headers.map(row => `
-        <tr>
-            ${row.map(h => `<th rowspan="${h.rowSpan || 1}" colspan="${h.colSpan || 1}" class="border border-gray-300 bg-gray-100 dark:bg-gray-800 p-3 text-sm font-bold text-gray-700 dark:text-gray-300 uppercase text-center">${h.label}</th>`).join('')}
+    const headerHtml = `
+        <tr class="bg-gray-100 dark:bg-gray-800">
+            ${headers.map(h => `<th class="border border-gray-300 dark:border-gray-700 p-3 text-sm font-bold text-gray-700 dark:text-gray-300 uppercase text-center">${h.label}</th>`).join('')}
+            ${isEditing ? `<th class="border border-gray-300 dark:border-gray-700 p-3 w-10"></th>` : ''}
         </tr>
-    `).join('');
+    `;
 
-    const bodyHtml = students.map((s, rIdx) => `
-        <tr>
-            ${leafKeys.map((key, cIdx) => {
-                const cell = s.cells[key] || { value: '', rowSpan: 1, colSpan: 1 };
-                if (cell.hidden) return '';
-                const isSelected = selectedCells.some(sel => sel.r === rIdx && sel.key === key);
-                return `
-                    <td rowspan="${cell.rowSpan || 1}" colspan="${cell.colSpan || 1}" 
-                        data-r="${rIdx}" data-key="${key}" data-c="${cIdx}"
-                        class="border border-gray-300 p-2 text-sm transition-all ${isSelected ? 'bg-indigo-100 ring-2 ring-indigo-500 z-10' : 'bg-white dark:bg-gray-900'}">
-                        ${isEditing ? 
-                            `<input type="text" value="${cell.value}" data-action="edit-cell" data-r="${rIdx}" data-key="${key}" class="w-full bg-transparent outline-none text-center">` 
-                            : `<div class="text-center">${cell.value}</div>`}
-                    </td>
-                `;
-            }).join('')}
+    const bodyHtml = students.map((s, idx) => `
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+            ${headers.map(h => `
+                <td class="border border-gray-300 dark:border-gray-700 p-2 text-sm text-center">
+                    ${isEditing ? 
+                        `<input type="text" value="${s[h.key] || ''}" data-student-id="${s.id}" data-field="${h.key}" class="w-full bg-transparent outline-none text-center focus:ring-1 focus:ring-indigo-300 rounded">` 
+                        : (s[h.key] || '')}
+                </td>
+            `).join('')}
+            ${isEditing ? `
+                <td class="border border-gray-300 dark:border-gray-700 p-2 text-center">
+                    <button data-action="delete-student" data-id="${s.id}" class="text-red-500 hover:text-red-700 transition-colors">${icons.trash}</button>
+                </td>
+            ` : ''}
         </tr>
     `).join('');
 
     return `
         <div class="flex flex-col gap-4">
             ${isEditing ? `
-                <div class="flex flex-wrap gap-2 items-center bg-white dark:bg-gray-800 p-3 rounded-xl border dark:border-gray-700 shadow-sm">
-                    <button data-action="add-student" class="flex items-center gap-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors">${icons.plus} Thêm dòng</button>
-                    <div class="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-2"></div>
-                    <button data-action="merge-cells" class="flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 disabled:opacity-40 transition-colors" ${selectedCells.length < 2 ? 'disabled' : ''}>${icons.merge} Gộp ô</button>
-                    <button data-action="unmerge-cells" class="flex items-center gap-1 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-bold hover:bg-orange-600 disabled:opacity-40 transition-colors" ${selectedCells.length !== 1 ? 'disabled' : ''}>${icons.unmerge} Tách ô</button>
-                    <span class="ml-auto text-[10px] uppercase opacity-50 font-bold hidden sm:inline">Giữ Ctrl để chọn nhiều ô</span>
+                <div class="flex justify-end">
+                    <button data-action="add-student" class="flex items-center gap-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm">
+                        ${icons.plus} Thêm học sinh
+                    </button>
                 </div>
             ` : ''}
             <div class="overflow-x-auto rounded-xl border border-gray-300 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-900">
                 <table class="w-full border-collapse">
                     <thead>${headerHtml}</thead>
-                    <tbody id="classlist-body">${bodyHtml}</tbody>
+                    <tbody>${bodyHtml || `<tr><td colspan="${headers.length + (isEditing?1:0)}" class="p-8 text-center text-gray-400">Chưa có dữ liệu học sinh</td></tr>`}</tbody>
                 </table>
             </div>
         </div>
@@ -127,7 +118,7 @@ export function renderSchedule(schedule, { isEditing = false } = {}) {
                                 ${days.map(d => {
                                     const val = schedule[d]?.[s]?.[i]?.subject || '';
                                     return `<td class="border dark:border-gray-700 p-1">
-                                        ${isEditing ? `<textarea data-action="edit-schedule" data-day="${d}" data-session="${s}" data-index="${i}" class="w-full h-12 p-2 bg-transparent border-none text-center focus:ring-2 focus:ring-indigo-300 rounded-lg resize-none text-sm">${val}</textarea>` 
+                                        ${isEditing ? `<textarea data-day="${d}" data-session="${s}" data-index="${i}" class="schedule-input w-full h-12 p-2 bg-transparent border-none text-center focus:ring-2 focus:ring-indigo-300 rounded-lg resize-none text-sm">${val}</textarea>` 
                                         : `<div class="min-h-[3rem] flex items-center justify-center p-2 font-medium">${val}</div>`}
                                     </td>`;
                                 }).join('')}
