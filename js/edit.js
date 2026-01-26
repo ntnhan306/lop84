@@ -1,7 +1,7 @@
 
-// v4.10 - Fixed Media & Auth logic + Added Hierarchical Headers & Cell Merging
+// v4.12 - Fixed Media Resizing, Modal Edit, and Original Password Flow
 import { fetchAppData, saveAppDataToStorage, saveAppData, authenticate, updatePassword, fetchNoImage } from './data.js';
-import { renderGallery, renderClassList, renderSchedule, icons, setNoImageBase64 } from './ui.js';
+import { renderGallery, renderClassList, renderSchedule, icons, setNoImageBase64, renderMediaEditModal } from './ui.js';
 
 // --- Global State ---
 let appData = null;
@@ -164,7 +164,7 @@ function renderScheduleSection() {
     contentWrapper.innerHTML = renderSchedule(appData.schedule, { isEditing: true, directEditMode: scheduleEditMode });
 }
 
-// --- MEDIA LOGIC ---
+// --- MEDIA LOGIC (RESIZING + MODALS) ---
 
 async function handleUploadMedia(e) {
     const files = Array.from(e.target.files);
@@ -232,21 +232,28 @@ function readFileAsBase64(file, resize = false) {
     });
 }
 
+function handleEditMedia(id) {
+    const item = appData.media.find(m => m.id === id);
+    if (!item) return;
+    dom.modalContainer.innerHTML = renderMediaEditModal(item);
+}
+
+function saveMediaEdit(id) {
+    const captionInput = document.getElementById('edit-media-caption-input');
+    const item = appData.media.find(m => m.id === id);
+    if (item && captionInput) {
+        item.caption = captionInput.value;
+        markAsDirty();
+        closeModal();
+        renderGallerySection();
+    }
+}
+
 function handleDeleteMedia(id) {
     if (!confirm('Bạn có chắc chắn muốn xóa mục này?')) return;
     appData.media = appData.media.filter(m => m.id !== id);
     markAsDirty();
     renderGallerySection();
-}
-
-function handleEditMedia(id) {
-    const item = appData.media.find(m => m.id === id);
-    const newCaption = prompt('Nhập chú thích mới:', item.caption || '');
-    if (newCaption !== null) {
-        item.caption = newCaption;
-        markAsDirty();
-        renderGallerySection();
-    }
 }
 
 function handleDeleteSelectedMedia() {
@@ -305,11 +312,8 @@ function finishCellMerging() {
     if (selectionStart.r === selectionEnd.r && selectionStart.c === selectionEnd.c) {
         const r = selectionStart.r;
         const c = selectionStart.c;
-        const colKey = appData.studentColumns[c].key;
         const currentMergeIndex = appData.merges.findIndex(m => 
-            r >= m.sR && r <= m.eR &&
-            appData.studentColumns[c].key === appData.studentColumns[c].key && // logic check match col
-            c >= m.sC && c <= m.eC
+            r >= m.sR && r <= m.eR && c >= m.sC && c <= m.eC
         );
         if (currentMergeIndex !== -1) {
             appData.merges.splice(currentMergeIndex, 1);
@@ -452,10 +456,13 @@ function handleChangePassword() {
         });
 }
 
+function closeModal() {
+    dom.modalContainer.innerHTML = '';
+}
+
 // --- EVENT LISTENERS ---
 
 function setupEventListeners() {
-    // Merging logic keyboard
     window.addEventListener('keyup', e => {
         if (e.key === 'Control' && isSelectingCells) finishCellMerging();
     });
@@ -514,6 +521,7 @@ function setupEventListeners() {
                 markAsDirty(); renderClassListSection();
             }
         }
+        else if (action === 'upload-media') handleUploadMedia(e);
         else if (action === 'delete-media') handleDeleteMedia(btn.dataset.id);
         else if (action === 'edit-media') handleEditMedia(btn.dataset.id);
         else if (action === 'toggle-select-mode') { 
@@ -529,6 +537,8 @@ function setupEventListeners() {
         }
         else if (action === 'delete-selected-media') handleDeleteSelectedMedia();
         else if (action === 'change-password') handleChangePassword();
+        else if (action === 'close-modal') closeModal();
+        else if (action === 'save-media-edit-confirm') saveMediaEdit(btn.dataset.id);
         else if (action === 'add-media-url') {
             const url = prompt('Nhập URL Media (Ảnh/Video/Audio):');
             if (url) {
@@ -571,6 +581,7 @@ function toggleAccordion(id, force = false) {
 async function init() {
     dom.authContainer = document.getElementById('auth-container');
     dom.editContainer = document.getElementById('edit-container');
+    dom.modalContainer = document.getElementById('modal-container');
     const noImg = await fetchNoImage();
     setNoImageBase64(noImg);
     setupEventListeners();

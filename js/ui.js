@@ -177,12 +177,46 @@ export function openLightbox(src) {
     container.addEventListener('click', (e) => { if (e.target === container) close(); });
 }
 
+export function renderMediaEditModal(mediaItem) {
+    return `
+    <div id="media-edit-modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all animate-scale-up">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">Chỉnh sửa Media</h3>
+                    <button data-action="close-modal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                
+                <div class="mb-6 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 aspect-video flex items-center justify-center relative">
+                    ${mediaItem.type === 'image' ? `<img src="${mediaItem.url}" class="max-h-full object-contain">` : ''}
+                    ${mediaItem.type === 'video' ? `<video src="${mediaItem.url}" class="max-h-full"></video>` : ''}
+                    ${mediaItem.type === 'audio' ? `<div class="p-4 text-indigo-500">${icons.audio.replace('h-6 w-6', 'h-16 w-16')}</div>` : ''}
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Chú thích (Caption)</label>
+                        <input type="text" id="edit-media-caption-input" value="${mediaItem.caption || ''}" class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder="Nhập chú thích mới...">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 dark:bg-gray-700/50 p-4 flex justify-end gap-3">
+                <button data-action="close-modal" class="px-5 py-2 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">Hủy</button>
+                <button data-action="save-media-edit-confirm" data-id="${mediaItem.id}" class="px-5 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none transition-all">Cập nhật</button>
+            </div>
+        </div>
+    </div>
+    `;
+}
+
 function renderClassListTable(students, columns, { directEditMode = false, merges = [] } = {}) {
     if (students.length === 0 && !directEditMode) {
         return renderEmptyState(icons.users, "Danh sách lớp trống", "Hiện chưa có thông tin học sinh nào được thêm vào.");
     }
 
-    // Logic tiêu đề phân tầng
     const hasParents = columns.some(col => col.parent);
     let topHeaderHtml = '';
     let bottomHeaderHtml = '';
@@ -230,12 +264,9 @@ function renderClassListTable(students, columns, { directEditMode = false, merge
         ` : ''}
     </tr>`;
 
-    // Logic gộp ô
     const skipMap = new Set();
     const bodyHtml = students.map((student, rowIndex) => {
         let cellsHtml = '';
-        
-        // Cột STT mặc định
         if (!hasSttColumn) {
             cellsHtml += `<td class="px-2 py-4 text-center font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30 w-12 relative overflow-hidden">
                 ${directEditMode ? `
@@ -248,18 +279,16 @@ function renderClassListTable(students, columns, { directEditMode = false, merge
         }
 
         columns.forEach((col, colIndex) => {
-            const key = `cell-${rowIndex}-${colIndex}`;
-            if (skipMap.has(key)) return;
+            const cellKey = `cell-${rowIndex}-${colIndex}`;
+            if (skipMap.has(cellKey)) return;
 
-            // Tìm xem ô này có thuộc vùng gộp nào không
-            const merge = merges.find(m => m.sR === rowIndex && columns[m.sC].key === col.key);
+            const merge = merges.find(m => m.sR === rowIndex && m.sC === colIndex);
             let rowSpan = 1;
             let colSpan = 1;
 
             if (merge) {
                 rowSpan = merge.eR - merge.sR + 1;
                 colSpan = merge.eC - merge.sC + 1;
-                // Đánh dấu các ô bị gộp để bỏ qua
                 for (let r = merge.sR; r <= merge.eR; r++) {
                     for (let c = merge.sC; c <= merge.eC; c++) {
                         if (r === rowIndex && c === colIndex) continue;
